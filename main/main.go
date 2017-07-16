@@ -1,3 +1,5 @@
+// ToDo:
+// Создание функционала профилей
 package main
 
 import (

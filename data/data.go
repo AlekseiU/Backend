@@ -134,7 +134,7 @@ func List(w http.ResponseWriter, r *http.Request) {
 	}
 	errorHandler(dataRows.Err(), 500, w)
 
-	// Подготавка выходных данных
+	// Подготовка выходных данных
 	output, err := json.Marshal(dataList)
 	errorHandler(err, 500, w)
 
@@ -228,7 +228,7 @@ func ListByProject(w http.ResponseWriter, r *http.Request) {
 	}
 	errorHandler(dataRows.Err(), 500, w)
 
-	// Подготавка выходных данных
+	// Подготовка выходных данных
 	output, err := json.Marshal(&dataList)
 	errorHandler(err, 500, w)
 
@@ -318,7 +318,7 @@ func Item(w http.ResponseWriter, r *http.Request) {
 		Content:     content,
 	}
 
-	// Подготавка выходных данных
+	// Подготовка выходных данных
 	output, err := json.Marshal(DataResult)
 	errorHandler(err, 500, w)
 
