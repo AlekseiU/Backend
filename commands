@@ -4,7 +4,7 @@ curl -X POST -d "{\"name\": \"data1\", \"project\": 1}" localhost:3000/data/crea
 
 // Delete
 curl -i -X POST -d "id=1" localhost:3000/projects/delete
-curl -i -X POST -d "id=1" localhost:3000/data/delete
+curl -i -X POST -d "id=10" localhost:3000/data/delete
 
 // Update
 curl -X POST -d "{\"name\": \"project1\", \"id\": 1}" localhost:3000/projects/update
@@ -12,4 +12,4 @@ curl -X POST -d "{\"name\": \"hello1\", \"id\": 10, \"project\": 1, \"coordinate
 
 
 // In progress
-curl -X POST -d "{\"name\": \"hello\", \"id\": 4, \"project\": 1, \"coordinates\": {\"x\": 0, \"y\": 0}, \"content\": [{\"id\": 1, \"name\": \"Заголовок2\", \"order\": 0, \"fields\": [{\"type\": \"textarea\", \"value\": \"Описание\", \"order\": 0, \"id\": 1}]}, {\"id\": 3, \"name\": \"Заголовок\", \"order\": 0, \"fields\": [{\"type\": \"textarea1\", \"value\": \"Описание\", \"order\": 0, \"id\": 2}]}]}" localhost:3000/data/update
+curl -X POST -d "{\"name\": \"hello\", \"id\": 11, \"project\": 2, \"coordinates\": {\"x\": 0, \"y\": 0}, \"content\": [{\"id\": 1, \"name\": \"Заголовок2\", \"order\": 0, \"fields\": [{\"type\": \"textarea\", \"value\": \"Описание\", \"order\": 0, \"id\": 1, \"group_id\": 4}]}, {\"id\": 3, \"name\": \"Заголовок\", \"order\": 0, \"fields\": [{\"type\": \"textarea1\", \"value\": \"Описание\", \"order\": 0, \"id\": 2, \"group_id\": 4}]}]}" localhost:3000/data/update

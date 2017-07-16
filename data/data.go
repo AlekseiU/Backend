@@ -1,7 +1,8 @@
 // Package "data" contains utility functions for working with data objects.
 // ToDo:
 // Вывод поля "контент" даты
-// Удаление строк из таблиц field_groups и fields при удалении Data
+// Рефакторинг кода
+
 package data
 
 import (
@@ -14,14 +15,37 @@ import (
     _ "github.com/lib/pq"
 )
 
+type DataDb struct {
+    Id          int            `json:"id"`
+    Name        string         `json:"name"`
+    Project     int            `json:"project"`
+    Parent      int            `json:"parent"`
+    Coordinates []byte         `json:"coordinates"`
+}
 type DataJson struct {
     Id          int            `json:"id"`
     Name        string         `json:"name"`
     Project     int            `json:"project"`
     Parent      int            `json:"parent"`
     Coordinates map[string]int `json:"coordinates"`
-    Content     []FieldGroup   `json:"content"`
+    Content     []*FieldGroup  `json:"content"`
 }
+type FieldGroup struct {
+    Id     int      `json:"id"`
+    Name   string   `json:"name"`
+    Order  int      `json:"order"`
+    Data   int      `json:"data"`
+    Fields []*Field `json:"fields"`
+}
+type Field struct {
+    Id    int    `json:"id"`
+    Type  string `json:"type"`
+    Value string `json:"value"`
+    Order int    `json:"order"`
+    Group int    `json:"group"`
+}
+
+
 
 type DataInput struct {
 	Id          int    `json:"id"`
@@ -39,19 +63,8 @@ type DataOutput struct {
 	Coordinates map[string]int `json:"coordinates"`
 	// Content     []interface{}   `json:"content"`
 }
-type FieldGroup struct {
-    Id     int     `json:"id"`
-	Name   string  `json:"name"`
-	Order  int     `json:"order"`
-	Fields []Field `json:"fields"`
-}
-type Field struct {
-    Id    int    `json:"id"`
-	Type  string `json:"type"`
-	Value string `json:"value"`
-	Order int    `json:"order"`
-    Group int    `json:"group"`
-}
+
+
 
 var db *sql.DB
 var err error
@@ -67,6 +80,116 @@ func init() {
 	}
 }
 
+// Function "List" show list of data
+func List(w http.ResponseWriter, r *http.Request) {
+    if r.Method != "GET" {
+        http.Error(w, http.StatusText(405), 405)
+        return
+    }
+
+    // Собираем список всех Data объектов
+    dataRows, err := db.Query("SELECT * FROM data")
+    if err != nil {
+        http.Error(w, http.StatusText(500), 500)
+        return
+    }
+    defer dataRows.Close()
+
+    dataList := make([]*DataJson, 0)
+    for dataRows.Next() {
+        data := new(DataDb)
+
+        err := dataRows.Scan(&data.Id, &data.Name, &data.Project, &data.Parent, &data.Coordinates)
+        if err != nil {
+            http.Error(w, http.StatusText(500), 500)
+            return
+        }
+
+        // Обрабатываем координаты
+        var coordinates map[string]int
+        json.Unmarshal([]byte(data.Coordinates), &coordinates)
+
+        // Собираем список всех field_group
+        dataFieldGroupRows, err := db.Query("SELECT * FROM field_groups WHERE data = $1", data.Id)
+        if err != nil {
+            http.Error(w, http.StatusText(500), 500)
+            return
+        }
+        defer dataFieldGroupRows.Close()
+
+        content := make([]*FieldGroup, 0)
+        for dataFieldGroupRows.Next() {
+            dataFieldGroup := new(FieldGroup)
+
+            err := dataFieldGroupRows.Scan(&dataFieldGroup.Id, &dataFieldGroup.Name, &dataFieldGroup.Order, &dataFieldGroup.Data)
+            if err != nil {
+                http.Error(w, http.StatusText(500), 500)
+                return
+            }
+
+            // Собираем список всех fields
+            dataFieldsRows, err := db.Query("SELECT * FROM fields WHERE group_id = $1", dataFieldGroup.Id)
+            if err != nil {
+                http.Error(w, http.StatusText(500), 500)
+                return
+            }
+            defer dataFieldsRows.Close()
+
+            dataFieldsList := make([]*Field, 0)
+            for dataFieldsRows.Next() {
+                dataFields := new(Field)
+
+                err := dataFieldsRows.Scan(&dataFields.Id, &dataFields.Type, &dataFields.Order, &dataFields.Value, &dataFields.Group)
+                if err != nil {
+                    http.Error(w, http.StatusText(500), 500)
+                    return
+                }
+
+                dataFieldsList = append(dataFieldsList, dataFields)
+            }
+
+            // Собираем обработанные группы в новый объект
+            dataFieldGroupResult := &FieldGroup {
+                Id:          dataFieldGroup.Id,
+                Name:        dataFieldGroup.Name,
+                Order:       dataFieldGroup.Order,
+                Data:        dataFieldGroup.Data,
+                Fields:      dataFieldsList,
+            }
+
+            content = append(content, dataFieldGroupResult)
+        }
+
+        // Собираем обработанные Data в новый объект
+        dataResult := &DataJson {
+            Id:          data.Id,
+            Name:        data.Name,
+            Project:     data.Project,
+            Parent:      data.Parent,
+            Coordinates: coordinates,
+            Content:     content,
+        }
+
+        dataList = append(dataList, dataResult)
+    }
+    if err = dataRows.Err(); err != nil {
+        http.Error(w, http.StatusText(500), 500)
+        return
+    }
+
+    // Составляем итоговый вывод списка Data объектов
+    output, err := json.Marshal(dataList)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    // Вывод JSON на клиент
+    w.Header().Set("Content-Type", "application/json; charset=utf-8")
+    w.Write(output)
+}
+
+/*
 // Function "List" show list of data by id
 func List(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
@@ -74,54 +197,92 @@ func List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query("SELECT * FROM data")
+    // Собираем список всех Data объектов
+	dataRows, err := db.Query("SELECT * FROM data")
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
-	defer rows.Close()
+	defer dataRows.Close()
 
-	dataList := make([]*DataOutput, 0)
-	for rows.Next() {
-		data := new(DataInput)
+	// dataList := make([]*DataJson, 0)
+	for dataRows.Next() {
+		data := new(DataDb)
 
-		err := rows.Scan(&data.Id, &data.Name, &data.Project, &data.Parent, &data.Coordinates)
+		err := dataRows.Scan(&data.Id, &data.Name, &data.Project, &data.Parent, &data.Coordinates)
 		if err != nil {
 			http.Error(w, http.StatusText(500), 500)
 			return
 		}
 
 		var coordinates map[string]int
-		// var content []interface{}
-
 		json.Unmarshal([]byte(data.Coordinates), &coordinates)
-		// json.Unmarshal([]byte(data.Content), &content)
 
-		output := &DataOutput{
-			Id:          data.Id,
-			Name:        data.Name,
-			Project:     data.Project,
-			Parent:      data.Parent,
-			Coordinates: coordinates,
-			// Content:     content,
-		}
+        // Собираем список всех field_group каждого объекта
+        dataFieldGroupsRows, err := db.Query("SELECT * FROM field_groups WHERE data = $1", data.Id)
+        if err != nil {
+            http.Error(w, http.StatusText(500), 500)
+            return
+        }
+        defer dataFieldGroupsRows.Close()
 
-		dataList = append(dataList, output)
+        dataFieldGroups := make([]*FieldGroup, 0)
+        for dataFieldGroupsRows.Next() {
+            dataFieldGroup := new(FieldGroup)
+
+            err := dataFieldGroupsRows.Scan(&dataFieldGroup.Id, &dataFieldGroup.Name, &dataFieldGroup.Order, &dataFieldGroup.Data)
+            if err != nil {
+                http.Error(w, http.StatusText(500), 500)
+                return
+            }
+
+            dataFieldGroups = append(dataFieldGroups, dataFieldGroup)
+        }
+        if err = dataFieldGroupsRows.Err(); err != nil {
+            http.Error(w, http.StatusText(500), 500)
+            return
+        }
+
+        // log.Print(dataFieldGroups)
+
+        // content, err := json.Marshal(dataFieldGroups)
+        // if err != nil {
+        //     http.Error(w, http.StatusText(500), 500)
+        //     return
+        // } 
+
+        var content []interface{}
+        json.Unmarshal([]byte(dataFieldGroups), &content)
+
+        log.Print(content)
+
+        // Создаем итоговый вид Data объекта
+		// output := &DataJson{
+		// 	Id:          data.Id,
+		// 	Name:        data.Name,
+		// 	Project:     data.Project,
+		// 	Parent:      data.Parent,
+		// 	Coordinates: coordinates,
+		// 	Content:     content,
+		// }
+
+		// dataList = append(dataList, output)
 	}
-	if err = rows.Err(); err != nil {
+	if err = dataRows.Err(); err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 
-	result, err := json.Marshal(&dataList)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	// result, err := json.Marshal(&dataList)
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(result)
+	// w.Write(result)
 }
+*/
 
 // Function "ListByProject" show list of data by project id
 func ListByProject(w http.ResponseWriter, r *http.Request) {
@@ -310,13 +471,13 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	}
 	coordinates, _ := json.Marshal(data.Coordinates)
 
-	dataStmt, err := db.Prepare("UPDATE data SET name = $2, project = $3, parent = $4, coordinates = $5 WHERE id = $1")
+	updateData, err := db.Prepare("UPDATE data SET name = $2, project = $3, parent = $4, coordinates = $5 WHERE id = $1")
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 
-	dataResult, err := dataStmt.Exec(data.Id, data.Name, data.Project, data.Parent, coordinates)
+	dataResult, err := updateData.Exec(data.Id, data.Name, data.Project, data.Parent, coordinates)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -464,24 +625,61 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stmt, err := db.Prepare("DELETE FROM data WHERE id = $1")
+    // Удаляем Fields объекта
+    deleteFields, err := db.Prepare("DELETE FROM fields f USING field_groups g WHERE g.id = f.group_id and g.data = $1")
+    if err != nil {
+        http.Error(w, http.StatusText(500), 500)
+        return
+    }
+
+    deleteFieldsResult, err := deleteFields.Exec(id)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    deleteFieldsRowsAffected, err := deleteFieldsResult.RowsAffected()
+    if err != nil {
+        http.Error(w, http.StatusText(500), 500)
+        return
+    }
+
+    // Удаляем FieldGroups объекта
+    deleteFieldGroups, err := db.Prepare("DELETE FROM field_groups WHERE data = $1")
+    if err != nil {
+        http.Error(w, http.StatusText(500), 500)
+        return
+    }
+
+    deleteFieldGroupsResult, err := deleteFieldGroups.Exec(id)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    deleteFieldGroupsRowsAffected, err := deleteFieldGroupsResult.RowsAffected()
+    if err != nil {
+        http.Error(w, http.StatusText(500), 500)
+        return
+    }
+
+    // Удаляем Data объект
+	deleteData, err := db.Prepare("DELETE FROM data WHERE id = $1")
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 
-	result, err := stmt.Exec(id)
+	deleteDataResult, err := deleteData.Exec(id)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
+	deleteDataRowsAffected, err := deleteDataResult.RowsAffected()
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 
-	if rowsAffected > 0 {
+	if deleteDataRowsAffected > 0 || deleteFieldsRowsAffected > 0 || deleteFieldGroupsRowsAffected > 0 {
 		fmt.Fprintf(w, "%t\n", true)
 	}
 }

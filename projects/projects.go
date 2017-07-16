@@ -1,4 +1,5 @@
 // ToDo:
+// При удалении проекта удалять также все связанные с ним поля и группы полей
 // Рефакторинг кода
 
 // Package "projects" contains utility functions for working with projects.
