@@ -1,6 +1,5 @@
 // Package "data" contains utility functions for working with data objects.
 // ToDo:
-// Вывод поля "контент" даты
 // Рефакторинг кода
 
 package data
@@ -44,27 +43,6 @@ type Field struct {
     Order int    `json:"order"`
     Group int    `json:"group"`
 }
-
-
-
-type DataInput struct {
-	Id          int    `json:"id"`
-	Name        string `json:"name"`
-	Project     int    `json:"project"`
-	Parent      int    `json:"parent"`
-	Coordinates []byte `json:"coordinates"`
-	// Content     []byte `json:"content"`
-}
-type DataOutput struct {
-	Id          int            `json:"id"`
-	Name        string         `json:"name"`
-	Project     int            `json:"project"`
-	Parent      int            `json:"parent"`
-	Coordinates map[string]int `json:"coordinates"`
-	// Content     []interface{}   `json:"content"`
-}
-
-
 
 var db *sql.DB
 var err error
@@ -189,101 +167,6 @@ func List(w http.ResponseWriter, r *http.Request) {
     w.Write(output)
 }
 
-/*
-// Function "List" show list of data by id
-func List(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, http.StatusText(405), 405)
-		return
-	}
-
-    // Собираем список всех Data объектов
-	dataRows, err := db.Query("SELECT * FROM data")
-	if err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
-	defer dataRows.Close()
-
-	// dataList := make([]*DataJson, 0)
-	for dataRows.Next() {
-		data := new(DataDb)
-
-		err := dataRows.Scan(&data.Id, &data.Name, &data.Project, &data.Parent, &data.Coordinates)
-		if err != nil {
-			http.Error(w, http.StatusText(500), 500)
-			return
-		}
-
-		var coordinates map[string]int
-		json.Unmarshal([]byte(data.Coordinates), &coordinates)
-
-        // Собираем список всех field_group каждого объекта
-        dataFieldGroupsRows, err := db.Query("SELECT * FROM field_groups WHERE data = $1", data.Id)
-        if err != nil {
-            http.Error(w, http.StatusText(500), 500)
-            return
-        }
-        defer dataFieldGroupsRows.Close()
-
-        dataFieldGroups := make([]*FieldGroup, 0)
-        for dataFieldGroupsRows.Next() {
-            dataFieldGroup := new(FieldGroup)
-
-            err := dataFieldGroupsRows.Scan(&dataFieldGroup.Id, &dataFieldGroup.Name, &dataFieldGroup.Order, &dataFieldGroup.Data)
-            if err != nil {
-                http.Error(w, http.StatusText(500), 500)
-                return
-            }
-
-            dataFieldGroups = append(dataFieldGroups, dataFieldGroup)
-        }
-        if err = dataFieldGroupsRows.Err(); err != nil {
-            http.Error(w, http.StatusText(500), 500)
-            return
-        }
-
-        // log.Print(dataFieldGroups)
-
-        // content, err := json.Marshal(dataFieldGroups)
-        // if err != nil {
-        //     http.Error(w, http.StatusText(500), 500)
-        //     return
-        // } 
-
-        var content []interface{}
-        json.Unmarshal([]byte(dataFieldGroups), &content)
-
-        log.Print(content)
-
-        // Создаем итоговый вид Data объекта
-		// output := &DataJson{
-		// 	Id:          data.Id,
-		// 	Name:        data.Name,
-		// 	Project:     data.Project,
-		// 	Parent:      data.Parent,
-		// 	Coordinates: coordinates,
-		// 	Content:     content,
-		// }
-
-		// dataList = append(dataList, output)
-	}
-	if err = dataRows.Err(); err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
-
-	// result, err := json.Marshal(&dataList)
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
-
-	w.Header().Set("Content-Type", "application/json")
-	// w.Write(result)
-}
-*/
-
 // Function "ListByProject" show list of data by project id
 func ListByProject(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
@@ -297,53 +180,104 @@ func ListByProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query("SELECT * FROM data WHERE project = $1", project)
+    // Собираем список Data объектов по id проекта
+	dataRows, err := db.Query("SELECT * FROM data WHERE project = $1", project)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
-	defer rows.Close()
+	defer dataRows.Close()
 
-	dataList := make([]*DataOutput, 0)
-	for rows.Next() {
-		data := new(DataInput)
+    dataList := make([]*DataJson, 0)
+    for dataRows.Next() {
+        data := new(DataDb)
 
-		err := rows.Scan(&data.Id, &data.Name, &data.Project, &data.Parent, &data.Coordinates)
-		if err != nil {
-			http.Error(w, http.StatusText(500), 500)
-			return
-		}
+        err := dataRows.Scan(&data.Id, &data.Name, &data.Project, &data.Parent, &data.Coordinates)
+        if err != nil {
+            http.Error(w, http.StatusText(500), 500)
+            return
+        }
 
-		var coordinates map[string]int
-		// var content []interface{}
+        // Обрабатываем координаты
+        var coordinates map[string]int
+        json.Unmarshal([]byte(data.Coordinates), &coordinates)
 
-		json.Unmarshal([]byte(data.Coordinates), &coordinates)
-		// json.Unmarshal([]byte(data.Content), &content)
+        // Собираем список всех field_group
+        dataFieldGroupRows, err := db.Query("SELECT * FROM field_groups WHERE data = $1", data.Id)
+        if err != nil {
+            http.Error(w, http.StatusText(500), 500)
+            return
+        }
+        defer dataFieldGroupRows.Close()
 
-		output := &DataOutput{
-			Id:          data.Id,
-			Name:        data.Name,
-			Project:     data.Project,
-			Parent:      data.Parent,
-			Coordinates: coordinates,
-			// Content:     content,
-		}
+        content := make([]*FieldGroup, 0)
+        for dataFieldGroupRows.Next() {
+            dataFieldGroup := new(FieldGroup)
 
-		dataList = append(dataList, output)
+            err := dataFieldGroupRows.Scan(&dataFieldGroup.Id, &dataFieldGroup.Name, &dataFieldGroup.Order, &dataFieldGroup.Data)
+            if err != nil {
+                http.Error(w, http.StatusText(500), 500)
+                return
+            }
+
+            // Собираем список всех fields
+            dataFieldsRows, err := db.Query("SELECT * FROM fields WHERE group_id = $1", dataFieldGroup.Id)
+            if err != nil {
+                http.Error(w, http.StatusText(500), 500)
+                return
+            }
+            defer dataFieldsRows.Close()
+
+            dataFieldsList := make([]*Field, 0)
+            for dataFieldsRows.Next() {
+                dataFields := new(Field)
+
+                err := dataFieldsRows.Scan(&dataFields.Id, &dataFields.Type, &dataFields.Order, &dataFields.Value, &dataFields.Group)
+                if err != nil {
+                    http.Error(w, http.StatusText(500), 500)
+                    return
+                }
+
+                dataFieldsList = append(dataFieldsList, dataFields)
+            }
+
+            // Собираем обработанные группы в новый объект
+            dataFieldGroupResult := &FieldGroup {
+                Id:          dataFieldGroup.Id,
+                Name:        dataFieldGroup.Name,
+                Order:       dataFieldGroup.Order,
+                Data:        dataFieldGroup.Data,
+                Fields:      dataFieldsList,
+            }
+
+            content = append(content, dataFieldGroupResult)
+        }
+
+        // Собираем обработанные Data в новый объект
+        dataResult := &DataJson {
+            Id:          data.Id,
+            Name:        data.Name,
+            Project:     data.Project,
+            Parent:      data.Parent,
+            Coordinates: coordinates,
+            Content:     content,
+        }
+
+        dataList = append(dataList, dataResult)
 	}
-	if err = rows.Err(); err != nil {
+	if err = dataRows.Err(); err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 
-	result, err := json.Marshal(&dataList)
+	output, err := json.Marshal(&dataList)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(result)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Write(output)
 }
 
 // Function "Item" show data by id
@@ -359,10 +293,10 @@ func Item(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	row := db.QueryRow("SELECT * FROM data WHERE id = $1", id)
-	data := new(DataInput)
+	dataRow := db.QueryRow("SELECT * FROM data WHERE id = $1", id)
+	data := new(DataDb)
 
-	err := row.Scan(&data.Id, &data.Name, &data.Project, &data.Parent, &data.Coordinates)
+	err := dataRow.Scan(&data.Id, &data.Name, &data.Project, &data.Parent, &data.Coordinates)
 	if err == sql.ErrNoRows {
 		http.NotFound(w, r)
 		return
@@ -371,29 +305,78 @@ func Item(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var coordinates map[string]int
-	// var content []interface{}
+    // Обрабатываем координаты
+    var coordinates map[string]int
+    json.Unmarshal([]byte(data.Coordinates), &coordinates)
 
-	json.Unmarshal([]byte(data.Coordinates), &coordinates)
-	// json.Unmarshal([]byte(data.Content), &content)
+    // Собираем список всех field_group
+    dataFieldGroupRows, err := db.Query("SELECT * FROM field_groups WHERE data = $1", data.Id)
+    if err != nil {
+        http.Error(w, http.StatusText(500), 500)
+        return
+    }
+    defer dataFieldGroupRows.Close()
 
-	output := &DataOutput{
+    content := make([]*FieldGroup, 0)
+    for dataFieldGroupRows.Next() {
+        dataFieldGroup := new(FieldGroup)
+
+        err := dataFieldGroupRows.Scan(&dataFieldGroup.Id, &dataFieldGroup.Name, &dataFieldGroup.Order, &dataFieldGroup.Data)
+        if err != nil {
+            http.Error(w, http.StatusText(500), 500)
+            return
+        }
+
+        // Собираем список всех fields
+        dataFieldsRows, err := db.Query("SELECT * FROM fields WHERE group_id = $1", dataFieldGroup.Id)
+        if err != nil {
+            http.Error(w, http.StatusText(500), 500)
+            return
+        }
+        defer dataFieldsRows.Close()
+
+        dataFieldsList := make([]*Field, 0)
+        for dataFieldsRows.Next() {
+            dataFields := new(Field)
+
+            err := dataFieldsRows.Scan(&dataFields.Id, &dataFields.Type, &dataFields.Order, &dataFields.Value, &dataFields.Group)
+            if err != nil {
+                http.Error(w, http.StatusText(500), 500)
+                return
+            }
+
+            dataFieldsList = append(dataFieldsList, dataFields)
+        }
+
+        // Собираем обработанные группы в новый объект
+        dataFieldGroupResult := &FieldGroup {
+            Id:          dataFieldGroup.Id,
+            Name:        dataFieldGroup.Name,
+            Order:       dataFieldGroup.Order,
+            Data:        dataFieldGroup.Data,
+            Fields:      dataFieldsList,
+        }
+
+        content = append(content, dataFieldGroupResult)
+    }
+
+	DataResult := &DataJson{
 		Id:          data.Id,
 		Name:        data.Name,
 		Project:     data.Project,
 		Parent:      data.Parent,
 		Coordinates: coordinates,
-		// Content:     content,
+		Content:     content,
 	}
 
-	result, err := json.Marshal(output)
+	output, err := json.Marshal(DataResult)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(result)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Write(output)
 }
 
 // Function "Create" creates a new data object by json
@@ -404,7 +387,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	decoder := json.NewDecoder(r.Body)
-	data := new(DataOutput)
+	data := new(DataJson)
 	err := decoder.Decode(&data)
 	if err != nil {
 		panic(err)
@@ -414,10 +397,6 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	if data.Name == "" || data.Project <= 0 {
 		http.Error(w, http.StatusText(400), 400)
 		return
-	}
-
-	if data.Coordinates == nil {
-		data.Coordinates = map[string]int{"x": 0, "y": 0}
 	}
 
 	stmt, err := db.Prepare("INSERT INTO data(name, project) VALUES($1, $2);")
@@ -517,7 +496,6 @@ func Update(w http.ResponseWriter, r *http.Request) {
 
         insertField, err := db.Prepare("INSERT INTO fields (type, ordr, value, group_id) VALUES ($1, $2, $3, $4);")
         if err != nil {
-            log.Print(err)
             http.Error(w, http.StatusText(500), 500)
             return
         }     
