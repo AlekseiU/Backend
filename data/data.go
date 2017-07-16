@@ -1,6 +1,7 @@
 // Package "data" contains utility functions for working with data objects.
 // ToDo:
-// Настроить запись поля "контент" в БД
+// Вывод поля "контент" даты
+// Удаление строк из таблиц field_groups и fields при удалении Data
 package data
 
 import (
@@ -12,6 +13,15 @@ import (
 
     _ "github.com/lib/pq"
 )
+
+type DataJson struct {
+    Id          int            `json:"id"`
+    Name        string         `json:"name"`
+    Project     int            `json:"project"`
+    Parent      int            `json:"parent"`
+    Coordinates map[string]int `json:"coordinates"`
+    Content     []FieldGroup   `json:"content"`
+}
 
 type DataInput struct {
 	Id          int    `json:"id"`
@@ -30,14 +40,17 @@ type DataOutput struct {
 	// Content     []interface{}   `json:"content"`
 }
 type FieldGroup struct {
+    Id     int     `json:"id"`
 	Name   string  `json:"name"`
 	Order  int     `json:"order"`
 	Fields []Field `json:"fields"`
 }
 type Field struct {
+    Id    int    `json:"id"`
 	Type  string `json:"type"`
 	Value string `json:"value"`
 	Order int    `json:"order"`
+    Group int    `json:"group"`
 }
 
 var db *sql.DB
@@ -270,13 +283,17 @@ func Create(w http.ResponseWriter, r *http.Request) {
 
 // Function "Update" updates a new data by json
 func Update(w http.ResponseWriter, r *http.Request) {
+    var dataRowsAffected int64
+    var fieldGroupRowsAffected int64
+    var fieldRowsAffected int64
+
 	if r.Method != "POST" {
 		http.Error(w, http.StatusText(405), 405)
 		return
 	}
 
 	decoder := json.NewDecoder(r.Body)
-	data := new(DataOutput)
+	data := new(DataJson)
 	err := decoder.Decode(&data)
 	if err != nil {
 		panic(err)
@@ -293,24 +310,143 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	}
 	coordinates, _ := json.Marshal(data.Coordinates)
 
-	stmt, err := db.Prepare("update data set name = $2, project = $3, parent = $4, coordinates = $5 where id=$1")
+	dataStmt, err := db.Prepare("UPDATE data SET name = $2, project = $3, parent = $4, coordinates = $5 WHERE id = $1")
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 
-	result, err := stmt.Exec(data.Id, data.Name, data.Project, data.Parent, coordinates)
+	dataResult, err := dataStmt.Exec(data.Id, data.Name, data.Project, data.Parent, coordinates)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
+	dataRowsAffected, err = dataResult.RowsAffected()
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 
-	if rowsAffected > 0 {
+    if data.Content != nil {
+        // Подготавливаем запросы на добавление групп полей в БД
+        checkFieldGroup, err := db.Prepare("SELECT * FROM field_groups WHERE id = $1")
+        if err != nil {
+            http.Error(w, http.StatusText(500), 500)
+            return
+        }
+
+        insertFieldGroup, err := db.Prepare("INSERT INTO field_groups (name, ordr, data) VALUES ($1, $2, $3);")
+        if err != nil {
+            http.Error(w, http.StatusText(500), 500)
+            return
+        }
+
+        updateFieldGroup, err := db.Prepare("UPDATE field_groups set name = $2, ordr = $3, data = $4 where id = $1")
+        if err != nil {
+            http.Error(w, http.StatusText(500), 500)
+            return
+        }
+
+        // Подготавливаем запросы на добавление полей в БД
+        checkField, err := db.Prepare("SELECT * FROM fields WHERE id = $1")
+        if err != nil {
+            http.Error(w, http.StatusText(500), 500)
+            return
+        }
+
+        insertField, err := db.Prepare("INSERT INTO fields (type, ordr, value, group_id) VALUES ($1, $2, $3, $4);")
+        if err != nil {
+            log.Print(err)
+            http.Error(w, http.StatusText(500), 500)
+            return
+        }     
+
+        updateField, err := db.Prepare("UPDATE fields set type = $2, ordr = $3, value = $4, group_id = $5 where id = $1")
+        if err != nil {
+            http.Error(w, http.StatusText(500), 500)
+            return
+        }   
+
+        // Добавление групп полей в БД
+        for g := 0; g < len(data.Content); g++ {
+            checkFieldGroupResult, err := checkFieldGroup.Exec(data.Content[g].Id)
+            if err != nil {
+                log.Fatal(err)
+            }
+
+            checkFieldGroupRowsAffected, err := checkFieldGroupResult.RowsAffected()
+            if err != nil {
+                http.Error(w, http.StatusText(500), 500)
+                return
+            }
+
+            // Если этой группы нет в БД - записываем, в обратном случае - обновляем запись
+            if checkFieldGroupRowsAffected == 0 {
+                fieldGroupResult, err := insertFieldGroup.Exec(data.Content[g].Name, data.Content[g].Order, data.Id)
+                if err != nil {
+                    log.Fatal(err)
+                }
+
+                fieldGroupRowsAffected, err = fieldGroupResult.RowsAffected()
+                if err != nil {
+                    http.Error(w, http.StatusText(500), 500)
+                    return
+                }
+            } else {
+                fieldGroupResult, err := updateFieldGroup.Exec(data.Content[g].Id, data.Content[g].Name, data.Content[g].Order, data.Id)
+                if err != nil {
+                    log.Fatal(err)
+                }
+
+                fieldGroupRowsAffected, err = fieldGroupResult.RowsAffected()
+                if err != nil {
+                    http.Error(w, http.StatusText(500), 500)
+                    return
+                }
+            }
+
+            // Добавление полей в БД
+            for f := 0; f < len(data.Content[g].Fields); f++ {
+                checkFieldResult, err := checkField.Exec(data.Content[g].Fields[f].Id)
+                if err != nil {
+                    log.Fatal(err)
+                }
+
+                checkFieldRowsAffected, err := checkFieldResult.RowsAffected()
+                if err != nil {
+                    http.Error(w, http.StatusText(500), 500)
+                    return
+                }
+
+                // Если этого поля нет в БД - записываем, в обратном случае - обновляем запись
+                if checkFieldRowsAffected == 0 {
+                    fieldResult, err := insertField.Exec(data.Content[g].Fields[f].Type, data.Content[g].Fields[f].Order, data.Content[g].Fields[f].Value, data.Content[g].Id)
+                    if err != nil {
+                        log.Fatal(err)
+                    }
+
+                    fieldRowsAffected, err = fieldResult.RowsAffected()
+                    if err != nil {
+                        http.Error(w, http.StatusText(500), 500)
+                        return
+                    }
+                } else {
+                    fieldResult, err := updateField.Exec(data.Content[g].Fields[f].Id, data.Content[g].Fields[f].Type, data.Content[g].Fields[f].Order, data.Content[g].Fields[f].Value, data.Content[g].Id)
+                    if err != nil {
+                        log.Fatal(err)
+                    }
+
+                    fieldRowsAffected, err = fieldResult.RowsAffected()
+                    if err != nil {
+                        http.Error(w, http.StatusText(500), 500)
+                        return
+                    }
+                }
+            }                    
+        }
+    }    
+
+	if dataRowsAffected > 0 || fieldGroupRowsAffected > 0 || fieldRowsAffected > 0 {
 		fmt.Fprintf(w, "%t\n", true)
 	}
 }
@@ -328,7 +464,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stmt, err := db.Prepare("delete from data where id=$1")
+	stmt, err := db.Prepare("DELETE FROM data WHERE id = $1")
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return

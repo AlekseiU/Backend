@@ -1,3 +1,6 @@
+// ToDo:
+// Рефакторинг кода
+
 // Package "projects" contains utility functions for working with projects.
 package projects
 
@@ -169,7 +172,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stmt, err := db.Prepare("update projects set name = $1, pages = $2 where id=$3")
+	stmt, err := db.Prepare("UPDATE projects SET name = $1, pages = $2 WHERE id = $3")
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
@@ -204,13 +207,13 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deleteData, err := db.Prepare("delete from data where project=$1")
+	deleteData, err := db.Prepare("DELETE FROM data WHERE project = $1")
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 
-	deleteProject, err := db.Prepare("delete from projects where id=$1")
+	deleteProject, err := db.Prepare("DELETE FROM projects WHERE id = $1")
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
