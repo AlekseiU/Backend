@@ -1,5 +1,4 @@
 // ToDo:
-// При удалении проекта удалять также все связанные с ним поля и группы полей
 // Рефакторинг кода
 
 // Package "projects" contains utility functions for working with projects.
@@ -208,18 +207,37 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+    // Удаляем fields связанные с проектом
+    deleteFields, err := db.Prepare("DELETE FROM fields f USING (field_groups g, data d) WHERE g.id = f.group_id and g.data = d.id and d.project = $1")
+    // deleteFields, err := db.Prepare("DELETE FROM data WHERE project = $1")
+    if err != nil {
+        http.Error(w, http.StatusText(500), 500)
+        return
+    }
+
+    // Удаляем field_groups связанные с проектом
+    deleteFieldGroups, err := db.Prepare("DELETE FROM field_groups g USING data d WHERE g.data = d.id and d.project = $1")
+    if err != nil {
+        http.Error(w, http.StatusText(500), 500)
+        return
+    }
+
+    // Удаляем data связанные с проектом
 	deleteData, err := db.Prepare("DELETE FROM data WHERE project = $1")
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 
+    // Удаляем проект
 	deleteProject, err := db.Prepare("DELETE FROM projects WHERE id = $1")
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 
+    deleteFields.Exec(id)
+    deleteFieldGroups.Exec(id)
 	deleteData.Exec(id)
 	projectResult, err := deleteProject.Exec(id)
 	if err != nil {
