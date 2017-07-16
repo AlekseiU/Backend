@@ -1,4 +1,4 @@
-// Package "data" contains utility functions for working with data objects.
+// Пакет "data" содержит набор служебных функция для работы с Data объектами
 // ToDo:
 // Рефакторинг кода
 
@@ -47,52 +47,43 @@ type Field struct {
 var db *sql.DB
 var err error
 
+// Функция "Init" устанавливает соединение с БД
 func init() {
+    // Открываем соединение
 	db, err = sql.Open("postgres", "user=urivsky password=123581321 dbname=mindassistant sslmode=disable")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err = db.Ping(); err != nil {
-		log.Fatal(err)
-	}
+	errorHandler(err, 500, nil)
+    // Отслеживаем состояние канала передачи данных
+    errorHandler(db.Ping(), 500, nil)
 }
 
-// Function "List" show list of data
+// Функция "List" отображает список всех Data объектов
 func List(w http.ResponseWriter, r *http.Request) {
+    // Проверка заголовков
     if r.Method != "GET" {
         http.Error(w, http.StatusText(405), 405)
         return
     }
 
-    // Собираем список всех Data объектов
+    // Подготовка запроса
     dataRows, err := db.Query("SELECT * FROM data")
-    if err != nil {
-        http.Error(w, http.StatusText(500), 500)
-        return
-    }
+    errorHandler(err, 500, w)
     defer dataRows.Close()
 
+    // Сбор данных из БД в структуру
     dataList := make([]*DataJson, 0)
     for dataRows.Next() {
         data := new(DataDb)
 
         err := dataRows.Scan(&data.Id, &data.Name, &data.Project, &data.Parent, &data.Coordinates)
-        if err != nil {
-            http.Error(w, http.StatusText(500), 500)
-            return
-        }
+        errorHandler(err, 500, w)
 
-        // Обрабатываем координаты
+        // Обработка координат
         var coordinates map[string]int
         json.Unmarshal([]byte(data.Coordinates), &coordinates)
 
-        // Собираем список всех field_group
+        // Сбор данных из таблицы field_group связанных с Data объектом
         dataFieldGroupRows, err := db.Query("SELECT * FROM field_groups WHERE data = $1", data.Id)
-        if err != nil {
-            http.Error(w, http.StatusText(500), 500)
-            return
-        }
+        errorHandler(err, 500, w)
         defer dataFieldGroupRows.Close()
 
         content := make([]*FieldGroup, 0)
@@ -100,17 +91,11 @@ func List(w http.ResponseWriter, r *http.Request) {
             dataFieldGroup := new(FieldGroup)
 
             err := dataFieldGroupRows.Scan(&dataFieldGroup.Id, &dataFieldGroup.Name, &dataFieldGroup.Order, &dataFieldGroup.Data)
-            if err != nil {
-                http.Error(w, http.StatusText(500), 500)
-                return
-            }
+            errorHandler(err, 500, w)
 
-            // Собираем список всех fields
+            // Сбор данных из таблицы fields связанных с Data объектом
             dataFieldsRows, err := db.Query("SELECT * FROM fields WHERE group_id = $1", dataFieldGroup.Id)
-            if err != nil {
-                http.Error(w, http.StatusText(500), 500)
-                return
-            }
+            errorHandler(err, 500, w)
             defer dataFieldsRows.Close()
 
             dataFieldsList := make([]*Field, 0)
@@ -118,15 +103,12 @@ func List(w http.ResponseWriter, r *http.Request) {
                 dataFields := new(Field)
 
                 err := dataFieldsRows.Scan(&dataFields.Id, &dataFields.Type, &dataFields.Order, &dataFields.Value, &dataFields.Group)
-                if err != nil {
-                    http.Error(w, http.StatusText(500), 500)
-                    return
-                }
+                errorHandler(err, 500, w)
 
                 dataFieldsList = append(dataFieldsList, dataFields)
             }
 
-            // Собираем обработанные группы в новый объект
+            // Трансформация группы в новый объект
             dataFieldGroupResult := &FieldGroup {
                 Id:          dataFieldGroup.Id,
                 Name:        dataFieldGroup.Name,
@@ -138,7 +120,7 @@ func List(w http.ResponseWriter, r *http.Request) {
             content = append(content, dataFieldGroupResult)
         }
 
-        // Собираем обработанные Data в новый объект
+        // Трансформация Data в новый объект
         dataResult := &DataJson {
             Id:          data.Id,
             Name:        data.Name,
@@ -150,64 +132,52 @@ func List(w http.ResponseWriter, r *http.Request) {
 
         dataList = append(dataList, dataResult)
     }
-    if err = dataRows.Err(); err != nil {
-        http.Error(w, http.StatusText(500), 500)
-        return
-    }
+    errorHandler(dataRows.Err(), 500, w)
 
-    // Составляем итоговый вывод списка Data объектов
+    // Подготавка выходных данных
     output, err := json.Marshal(dataList)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+    errorHandler(err, 500, w)
 
-    // Вывод JSON на клиент
+    // Отображение результата
     w.Header().Set("Content-Type", "application/json; charset=utf-8")
     w.Write(output)
 }
 
-// Function "ListByProject" show list of data by project id
+// Функция "ListByProject" отображает список Data объектов по id проекта
 func ListByProject(w http.ResponseWriter, r *http.Request) {
+    // Проверка заголовков
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(405), 405)
 		return
 	}
 
+    // Сбор и анализ входных данных
 	project := r.FormValue("project")
 	if project == "" {
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
 
-    // Собираем список Data объектов по id проекта
+    // Подготовка запроса
 	dataRows, err := db.Query("SELECT * FROM data WHERE project = $1", project)
-	if err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
+	errorHandler(err, 500, w)
 	defer dataRows.Close()
 
+    // Сбор данных из БД в структуру
     dataList := make([]*DataJson, 0)
     for dataRows.Next() {
         data := new(DataDb)
 
         err := dataRows.Scan(&data.Id, &data.Name, &data.Project, &data.Parent, &data.Coordinates)
-        if err != nil {
-            http.Error(w, http.StatusText(500), 500)
-            return
-        }
+        errorHandler(err, 500, w)
 
-        // Обрабатываем координаты
+        // Обработка координат
         var coordinates map[string]int
         json.Unmarshal([]byte(data.Coordinates), &coordinates)
 
-        // Собираем список всех field_group
+        // Сбор данных из таблицы field_group связанных с Data объектом
         dataFieldGroupRows, err := db.Query("SELECT * FROM field_groups WHERE data = $1", data.Id)
-        if err != nil {
-            http.Error(w, http.StatusText(500), 500)
-            return
-        }
+        errorHandler(err, 500, w)
         defer dataFieldGroupRows.Close()
 
         content := make([]*FieldGroup, 0)
@@ -215,17 +185,11 @@ func ListByProject(w http.ResponseWriter, r *http.Request) {
             dataFieldGroup := new(FieldGroup)
 
             err := dataFieldGroupRows.Scan(&dataFieldGroup.Id, &dataFieldGroup.Name, &dataFieldGroup.Order, &dataFieldGroup.Data)
-            if err != nil {
-                http.Error(w, http.StatusText(500), 500)
-                return
-            }
+            errorHandler(err, 500, w)
 
-            // Собираем список всех fields
+            // Сбор данных из таблицы fields связанных с Data объектом
             dataFieldsRows, err := db.Query("SELECT * FROM fields WHERE group_id = $1", dataFieldGroup.Id)
-            if err != nil {
-                http.Error(w, http.StatusText(500), 500)
-                return
-            }
+            errorHandler(err, 500, w)
             defer dataFieldsRows.Close()
 
             dataFieldsList := make([]*Field, 0)
@@ -233,15 +197,12 @@ func ListByProject(w http.ResponseWriter, r *http.Request) {
                 dataFields := new(Field)
 
                 err := dataFieldsRows.Scan(&dataFields.Id, &dataFields.Type, &dataFields.Order, &dataFields.Value, &dataFields.Group)
-                if err != nil {
-                    http.Error(w, http.StatusText(500), 500)
-                    return
-                }
+                errorHandler(err, 500, w)
 
                 dataFieldsList = append(dataFieldsList, dataFields)
             }
 
-            // Собираем обработанные группы в новый объект
+            // Трансформация группы в новый объект
             dataFieldGroupResult := &FieldGroup {
                 Id:          dataFieldGroup.Id,
                 Name:        dataFieldGroup.Name,
@@ -253,7 +214,7 @@ func ListByProject(w http.ResponseWriter, r *http.Request) {
             content = append(content, dataFieldGroupResult)
         }
 
-        // Собираем обработанные Data в новый объект
+        // Трансформация Data в новый объект
         dataResult := &DataJson {
             Id:          data.Id,
             Name:        data.Name,
@@ -265,56 +226,52 @@ func ListByProject(w http.ResponseWriter, r *http.Request) {
 
         dataList = append(dataList, dataResult)
 	}
-	if err = dataRows.Err(); err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
+    errorHandler(dataRows.Err(), 500, w)
 
+    // Подготавка выходных данных
 	output, err := json.Marshal(&dataList)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	errorHandler(err, 500, w)
 
+    // Отображение результата
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Write(output)
 }
 
-// Function "Item" show data by id
+// Функция "Item" отображает Data объект по его id
 func Item(w http.ResponseWriter, r *http.Request) {
+    // Проверка заголовков
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(405), 405)
 		return
 	}
 
+    // Сбор и анализ входных данных
 	id := r.FormValue("id")
 	if id == "" {
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
 
+    // Подготовка запроса
 	dataRow := db.QueryRow("SELECT * FROM data WHERE id = $1", id)
 	data := new(DataDb)
 
+    // Сбор данных из БД в структуру
 	err := dataRow.Scan(&data.Id, &data.Name, &data.Project, &data.Parent, &data.Coordinates)
 	if err == sql.ErrNoRows {
 		http.NotFound(w, r)
 		return
-	} else if err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
+	} else {
+        errorHandler(err, 500, w)
+    }
 
-    // Обрабатываем координаты
+    // Обработка координат
     var coordinates map[string]int
     json.Unmarshal([]byte(data.Coordinates), &coordinates)
 
-    // Собираем список всех field_group
+    // Сбор данных из таблицы field_group связанных с Data объектом
     dataFieldGroupRows, err := db.Query("SELECT * FROM field_groups WHERE data = $1", data.Id)
-    if err != nil {
-        http.Error(w, http.StatusText(500), 500)
-        return
-    }
+    errorHandler(err, 500, w)
     defer dataFieldGroupRows.Close()
 
     content := make([]*FieldGroup, 0)
@@ -322,17 +279,11 @@ func Item(w http.ResponseWriter, r *http.Request) {
         dataFieldGroup := new(FieldGroup)
 
         err := dataFieldGroupRows.Scan(&dataFieldGroup.Id, &dataFieldGroup.Name, &dataFieldGroup.Order, &dataFieldGroup.Data)
-        if err != nil {
-            http.Error(w, http.StatusText(500), 500)
-            return
-        }
+        errorHandler(err, 500, w)
 
-        // Собираем список всех fields
+        // Сбор данных из таблицы fields связанных с Data объектом
         dataFieldsRows, err := db.Query("SELECT * FROM fields WHERE group_id = $1", dataFieldGroup.Id)
-        if err != nil {
-            http.Error(w, http.StatusText(500), 500)
-            return
-        }
+        errorHandler(err, 500, w)
         defer dataFieldsRows.Close()
 
         dataFieldsList := make([]*Field, 0)
@@ -340,15 +291,12 @@ func Item(w http.ResponseWriter, r *http.Request) {
             dataFields := new(Field)
 
             err := dataFieldsRows.Scan(&dataFields.Id, &dataFields.Type, &dataFields.Order, &dataFields.Value, &dataFields.Group)
-            if err != nil {
-                http.Error(w, http.StatusText(500), 500)
-                return
-            }
+            errorHandler(err, 500, w)
 
             dataFieldsList = append(dataFieldsList, dataFields)
         }
 
-        // Собираем обработанные группы в новый объект
+        // Трансформация группы в новый объект
         dataFieldGroupResult := &FieldGroup {
             Id:          dataFieldGroup.Id,
             Name:        dataFieldGroup.Name,
@@ -360,6 +308,7 @@ func Item(w http.ResponseWriter, r *http.Request) {
         content = append(content, dataFieldGroupResult)
     }
 
+    // Трансформация Data в новый объект
 	DataResult := &DataJson{
 		Id:          data.Id,
 		Name:        data.Name,
@@ -369,29 +318,28 @@ func Item(w http.ResponseWriter, r *http.Request) {
 		Content:     content,
 	}
 
+    // Подготавка выходных данных
 	output, err := json.Marshal(DataResult)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	errorHandler(err, 500, w)
 
+    // Отображение результата
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Write(output)
 }
 
-// Function "Create" creates a new data object by json
+// Функция "Create" создает новый Data объект
 func Create(w http.ResponseWriter, r *http.Request) {
+    // Проверка заголовков
 	if r.Method != "POST" {
 		http.Error(w, http.StatusText(405), 405)
 		return
 	}
 
+    // Сбор и анализ входных данных
 	decoder := json.NewDecoder(r.Body)
 	data := new(DataJson)
 	err := decoder.Decode(&data)
-	if err != nil {
-		panic(err)
-	}
+	errorHandler(err, 500, w)
 	defer r.Body.Close()
 
 	if data.Name == "" || data.Project <= 0 {
@@ -399,45 +347,42 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stmt, err := db.Prepare("INSERT INTO data(name, project) VALUES($1, $2);")
-	if err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
+    // Подготовка запроса
+	createData, err := db.Prepare("INSERT INTO data(name, project) VALUES($1, $2);")
+	errorHandler(err, 500, w)
 
-	result, err := stmt.Exec(data.Name, data.Project)
-	if err != nil {
-		log.Fatal(err)
-	}
+    // Выполнение запроса
+	result, err := createData.Exec(data.Name, data.Project)
+	errorHandler(err, 500, w)
 
+    // Проверка на успешность
 	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
+	errorHandler(err, 500, w)
 
+    // Отображение результата
 	if rowsAffected > 0 {
 		fmt.Fprintf(w, "%t\n", true)
 	}
 }
 
-// Function "Update" updates a new data by json
+// Функция "Update" обновляет Data объект
 func Update(w http.ResponseWriter, r *http.Request) {
+    // Служебные переменные
     var dataRowsAffected int64
     var fieldGroupRowsAffected int64
     var fieldRowsAffected int64
 
+    // Проверка заголовков
 	if r.Method != "POST" {
 		http.Error(w, http.StatusText(405), 405)
 		return
 	}
 
+    // Сбор и анализ входных данных
 	decoder := json.NewDecoder(r.Body)
 	data := new(DataJson)
 	err := decoder.Decode(&data)
-	if err != nil {
-		panic(err)
-	}
+	errorHandler(err, 500, w)
 	defer r.Body.Close()
 
 	if data.Id == 0 || data.Project <= 0 {
@@ -445,219 +390,161 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+    // Обработка координат
 	if data.Coordinates == nil {
 		data.Coordinates = map[string]int{"x": 0, "y": 0}
 	}
 	coordinates, _ := json.Marshal(data.Coordinates)
 
+    // Подготовка запроса
 	updateData, err := db.Prepare("UPDATE data SET name = $2, project = $3, parent = $4, coordinates = $5 WHERE id = $1")
-	if err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
+	errorHandler(err, 500, w)
 
+    // Выполнение запроса
 	dataResult, err := updateData.Exec(data.Id, data.Name, data.Project, data.Parent, coordinates)
-	if err != nil {
-		log.Fatal(err)
-	}
+	errorHandler(err, 500, w)
 
+    // Проверка на успешность
 	dataRowsAffected, err = dataResult.RowsAffected()
-	if err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
+	errorHandler(err, 500, w)
 
+    // Обработка контента Data объекта
     if data.Content != nil {
         // Подготавливаем запросы на добавление групп полей в БД
         checkFieldGroup, err := db.Prepare("SELECT * FROM field_groups WHERE id = $1")
-        if err != nil {
-            http.Error(w, http.StatusText(500), 500)
-            return
-        }
+        errorHandler(err, 500, w)
 
         insertFieldGroup, err := db.Prepare("INSERT INTO field_groups (name, ordr, data) VALUES ($1, $2, $3);")
-        if err != nil {
-            http.Error(w, http.StatusText(500), 500)
-            return
-        }
+        errorHandler(err, 500, w)
 
         updateFieldGroup, err := db.Prepare("UPDATE field_groups set name = $2, ordr = $3, data = $4 where id = $1")
-        if err != nil {
-            http.Error(w, http.StatusText(500), 500)
-            return
-        }
+        errorHandler(err, 500, w)
 
         // Подготавливаем запросы на добавление полей в БД
         checkField, err := db.Prepare("SELECT * FROM fields WHERE id = $1")
-        if err != nil {
-            http.Error(w, http.StatusText(500), 500)
-            return
-        }
+        errorHandler(err, 500, w)
 
         insertField, err := db.Prepare("INSERT INTO fields (type, ordr, value, group_id) VALUES ($1, $2, $3, $4);")
-        if err != nil {
-            http.Error(w, http.StatusText(500), 500)
-            return
-        }     
+        errorHandler(err, 500, w)
 
         updateField, err := db.Prepare("UPDATE fields set type = $2, ordr = $3, value = $4, group_id = $5 where id = $1")
-        if err != nil {
-            http.Error(w, http.StatusText(500), 500)
-            return
-        }   
+        errorHandler(err, 500, w)
 
         // Добавление групп полей в БД
         for g := 0; g < len(data.Content); g++ {
             checkFieldGroupResult, err := checkFieldGroup.Exec(data.Content[g].Id)
-            if err != nil {
-                log.Fatal(err)
-            }
+            errorHandler(err, 500, w)
 
             checkFieldGroupRowsAffected, err := checkFieldGroupResult.RowsAffected()
-            if err != nil {
-                http.Error(w, http.StatusText(500), 500)
-                return
-            }
+            errorHandler(err, 500, w)
 
             // Если этой группы нет в БД - записываем, в обратном случае - обновляем запись
             if checkFieldGroupRowsAffected == 0 {
                 fieldGroupResult, err := insertFieldGroup.Exec(data.Content[g].Name, data.Content[g].Order, data.Id)
-                if err != nil {
-                    log.Fatal(err)
-                }
+                errorHandler(err, 500, w)
 
                 fieldGroupRowsAffected, err = fieldGroupResult.RowsAffected()
-                if err != nil {
-                    http.Error(w, http.StatusText(500), 500)
-                    return
-                }
+                errorHandler(err, 500, w)
             } else {
                 fieldGroupResult, err := updateFieldGroup.Exec(data.Content[g].Id, data.Content[g].Name, data.Content[g].Order, data.Id)
-                if err != nil {
-                    log.Fatal(err)
-                }
+                errorHandler(err, 500, w)
 
                 fieldGroupRowsAffected, err = fieldGroupResult.RowsAffected()
-                if err != nil {
-                    http.Error(w, http.StatusText(500), 500)
-                    return
-                }
+                errorHandler(err, 500, w)
             }
 
             // Добавление полей в БД
             for f := 0; f < len(data.Content[g].Fields); f++ {
                 checkFieldResult, err := checkField.Exec(data.Content[g].Fields[f].Id)
-                if err != nil {
-                    log.Fatal(err)
-                }
+                errorHandler(err, 500, w)
 
                 checkFieldRowsAffected, err := checkFieldResult.RowsAffected()
-                if err != nil {
-                    http.Error(w, http.StatusText(500), 500)
-                    return
-                }
+                errorHandler(err, 500, w)
 
                 // Если этого поля нет в БД - записываем, в обратном случае - обновляем запись
                 if checkFieldRowsAffected == 0 {
                     fieldResult, err := insertField.Exec(data.Content[g].Fields[f].Type, data.Content[g].Fields[f].Order, data.Content[g].Fields[f].Value, data.Content[g].Id)
-                    if err != nil {
-                        log.Fatal(err)
-                    }
+                    errorHandler(err, 500, w)
 
                     fieldRowsAffected, err = fieldResult.RowsAffected()
-                    if err != nil {
-                        http.Error(w, http.StatusText(500), 500)
-                        return
-                    }
+                    errorHandler(err, 500, w)
                 } else {
                     fieldResult, err := updateField.Exec(data.Content[g].Fields[f].Id, data.Content[g].Fields[f].Type, data.Content[g].Fields[f].Order, data.Content[g].Fields[f].Value, data.Content[g].Id)
-                    if err != nil {
-                        log.Fatal(err)
-                    }
+                    errorHandler(err, 500, w)
 
                     fieldRowsAffected, err = fieldResult.RowsAffected()
-                    if err != nil {
-                        http.Error(w, http.StatusText(500), 500)
-                        return
-                    }
+                    errorHandler(err, 500, w)
                 }
             }                    
         }
     }    
 
+    // Отображение результата
 	if dataRowsAffected > 0 || fieldGroupRowsAffected > 0 || fieldRowsAffected > 0 {
 		fmt.Fprintf(w, "%t\n", true)
 	}
 }
 
-// Function "Delete" delete a data by id
+// Функция "Delete" удаляет Data объект по его id и все связанные с ним данные
 func Delete(w http.ResponseWriter, r *http.Request) {
+    // Проверка заголовков
 	if r.Method != "POST" {
 		http.Error(w, http.StatusText(405), 405)
 		return
 	}
 
+    // Сбор и анализ входных данных
 	id := r.FormValue("id")
 	if id == "" {
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
 
-    // Удаляем Fields объекта
+    // Удаление fields связанных с Data объектом
     deleteFields, err := db.Prepare("DELETE FROM fields f USING field_groups g WHERE g.id = f.group_id and g.data = $1")
-    if err != nil {
-        http.Error(w, http.StatusText(500), 500)
-        return
-    }
+    errorHandler(err, 500, w)
 
     deleteFieldsResult, err := deleteFields.Exec(id)
-    if err != nil {
-        log.Fatal(err)
-    }
+    errorHandler(err, 500, w)
 
     deleteFieldsRowsAffected, err := deleteFieldsResult.RowsAffected()
-    if err != nil {
-        http.Error(w, http.StatusText(500), 500)
-        return
-    }
+    errorHandler(err, 500, w)
 
-    // Удаляем FieldGroups объекта
+    // Удаление FieldGroups связанных с Data объектом
     deleteFieldGroups, err := db.Prepare("DELETE FROM field_groups WHERE data = $1")
-    if err != nil {
-        http.Error(w, http.StatusText(500), 500)
-        return
-    }
+    errorHandler(err, 500, w)
 
     deleteFieldGroupsResult, err := deleteFieldGroups.Exec(id)
-    if err != nil {
-        log.Fatal(err)
-    }
+    errorHandler(err, 500, w)
 
     deleteFieldGroupsRowsAffected, err := deleteFieldGroupsResult.RowsAffected()
-    if err != nil {
-        http.Error(w, http.StatusText(500), 500)
-        return
-    }
+    errorHandler(err, 500, w)
 
-    // Удаляем Data объект
+    // Удаление Data объекта
 	deleteData, err := db.Prepare("DELETE FROM data WHERE id = $1")
-	if err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
+	errorHandler(err, 500, w)
 
 	deleteDataResult, err := deleteData.Exec(id)
-	if err != nil {
-		log.Fatal(err)
-	}
+	errorHandler(err, 500, w)
 
 	deleteDataRowsAffected, err := deleteDataResult.RowsAffected()
-	if err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
+	errorHandler(err, 500, w)
 
+    // Отображение результата
 	if deleteDataRowsAffected > 0 || deleteFieldsRowsAffected > 0 || deleteFieldGroupsRowsAffected > 0 {
 		fmt.Fprintf(w, "%t\n", true)
 	}
+}
+
+// Функция для проверки ошибок
+func errorHandler(err error, code int, w http.ResponseWriter) {
+    if err != nil {
+        // log.Print(err) // <= Режим отладки
+        if w != nil {
+            http.Error(w, http.StatusText(500), 500)
+            return
+        } else {
+            log.Fatal(err)
+        }
+    }
 }
