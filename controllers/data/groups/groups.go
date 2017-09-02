@@ -106,7 +106,6 @@ func Create(w http.ResponseWriter, r *http.Request) {
 
 	// Выполнение запроса
 	row := db.QueryRow("INSERT INTO field_groups (name, ordr, data) VALUES ($1, $2, $3) RETURNING id", group.Name, group.Order, group.Data)
-
 	err = row.Scan(&group.ID)
 	errors.ErrorHandler(err, 500, w)
 
@@ -139,15 +138,22 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	errors.ErrorHandler(err, 500, w)
 
 	// Выполнение запросов
-	delete.Exec(id)
-
-	// Формирование ответа от сервера
-	response := response.Set(true, "", nil)
-
-	// Подготовка выходных данных
-	output, err := json.Marshal(response)
+	result, err := delete.Exec(id)
 	errors.ErrorHandler(err, 500, w)
 
-	// Отображение результата
-	w.Write(output)
+	// Проверка на успешность
+	rows, err := result.RowsAffected()
+	errors.ErrorHandler(err, 500, w)
+
+	if rows > 0 {
+		// Формирование ответа от сервера
+		response := response.Set(true, "", nil)
+
+		// Подготовка выходных данных
+		output, err := json.Marshal(response)
+		errors.ErrorHandler(err, 500, w)
+
+		// Отображение результата
+		w.Write(output)
+	}
 }

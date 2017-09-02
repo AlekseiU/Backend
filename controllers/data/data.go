@@ -23,56 +23,8 @@ import (
 // Соединение с БД
 var db = config.DbConnect()
 
-// List отображает список всех Data объектов
+// List отображает список Data объектов по id проекта
 func List(w http.ResponseWriter, r *http.Request) {
-	// Подготовка запроса
-	rows, err := db.Query("SELECT * FROM data")
-	errors.ErrorHandler(err, 500, w)
-	defer rows.Close()
-
-	// Сбор данных из БД в структуру
-	list := make([]*iData.Model, 0)
-	for rows.Next() {
-		data := new(iData.Db)
-
-		err := rows.Scan(&data.ID, &data.Name, &data.Project, &data.Parent, &data.Coordinates)
-		errors.ErrorHandler(err, 500, w)
-
-		// Обработка координат
-		var coordinates map[string]float64
-		json.Unmarshal([]byte(data.Coordinates), &coordinates)
-
-		// Сбор данных из таблицы field_group связанных с Data объектом
-		content := groups.List(w, r, data)
-
-		// Трансформация Data в новый объект
-		item := &iData.Model{
-			ID:          data.ID,
-			Name:        data.Name,
-			Project:     data.Project,
-			Parent:      data.Parent,
-			Coordinates: coordinates,
-			Content:     content,
-		}
-
-		list = append(list, item)
-	}
-	errors.ErrorHandler(rows.Err(), 500, w)
-
-	// Формирование ответа от сервера
-	response := response.Set(true, "", list)
-
-	// Подготовка выходных данных
-	output, err := json.Marshal(response)
-	errors.ErrorHandler(err, 500, w)
-
-	// Отображение результата
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Write(output)
-}
-
-// ListByProject отображает список Data объектов по id проекта
-func ListByProject(w http.ResponseWriter, r *http.Request) {
 	// Сбор и анализ входных данных
 	params := mux.Vars(r)
 	project := params["id"]

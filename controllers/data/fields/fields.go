@@ -5,7 +5,6 @@ import (
 	// Config
 	"MindAssistantBackend/config"
 	"encoding/json"
-	"strings"
 	// Helpers
 	"MindAssistantBackend/helpers/errors"
 	"MindAssistantBackend/helpers/response"
@@ -57,10 +56,6 @@ func Update(w http.ResponseWriter, r *http.Request, field *iField.Model) *iField
 		return nil
 	}
 
-	// Обработка строк
-	field.Type = strings.TrimSpace(field.Type)
-	field.Value = strings.TrimSpace(field.Value)
-
 	// Подготовка запросов
 	update, err := db.Prepare("UPDATE fields set type = $2, ordr = $3, value = $4, group_id = $5 where id = $1")
 	errors.ErrorHandler(err, 500, w)
@@ -95,13 +90,8 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Обработка строк
-	field.Type = strings.TrimSpace(field.Type)
-	field.Value = strings.TrimSpace(field.Value)
-
 	// Выполнение запроса
 	row := db.QueryRow("INSERT INTO fields (type, ordr, value, group_id) VALUES ($1, $2, $3, $4) RETURNING id", field.Type, field.Order, field.Value, field.Group)
-
 	err = row.Scan(&field.ID)
 	errors.ErrorHandler(err, 500, w)
 
@@ -134,15 +124,22 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	errors.ErrorHandler(err, 500, w)
 
 	// Выполнение запросов
-	delete.Exec(id)
-
-	// Формирование ответа от сервера
-	response := response.Set(true, "", nil)
-
-	// Подготовка выходных данных
-	output, err := json.Marshal(response)
+	result, err := delete.Exec(id)
 	errors.ErrorHandler(err, 500, w)
 
-	// Отображение результата
-	w.Write(output)
+	// Проверка на успешность
+	rows, err := result.RowsAffected()
+	errors.ErrorHandler(err, 500, w)
+
+	if rows > 0 {
+		// Формирование ответа от сервера
+		response := response.Set(true, "", nil)
+
+		// Подготовка выходных данных
+		output, err := json.Marshal(response)
+		errors.ErrorHandler(err, 500, w)
+
+		// Отображение результата
+		w.Write(output)
+	}
 }

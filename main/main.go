@@ -37,10 +37,7 @@ func main() {
 		Methods("OPTIONS", "DELETE")
 
 	// Методы для работы с Data объектами
-	router.HandleFunc("/data", data.List).
-		Methods("GET")
-
-	router.HandleFunc("/data/project/{id}", data.ListByProject).
+	router.HandleFunc("/data/project/{id}", data.List).
 		Methods("GET")
 
 	router.HandleFunc("/data", data.Create).
