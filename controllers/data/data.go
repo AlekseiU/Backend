@@ -10,6 +10,8 @@ import (
 	// Interfaces
 	"MindAssistantBackend/interfaces/data"
 	"MindAssistantBackend/interfaces/data/groups"
+	// Queries
+	"MindAssistantBackend/db/data"
 	// Controllers
 	"MindAssistantBackend/controllers/data/groups"
 	// Libraries
@@ -27,14 +29,14 @@ var db = config.DbConnect()
 func List(w http.ResponseWriter, r *http.Request) {
 	// Сбор и анализ входных данных
 	params := mux.Vars(r)
-	project := params["id"]
-	if project == "" {
+	id := params["id"]
+	if id == "" {
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
 
 	// Подготовка запроса
-	rows, err := db.Query("SELECT * FROM data WHERE project = $1", project)
+	rows, err := dbData.List(id)
 	errors.ErrorHandler(err, 500, w)
 	defer rows.Close()
 
@@ -98,7 +100,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	errors.ErrorHandler(err, 500, w)
 
 	// Выполнение запроса
-	row := db.QueryRow("INSERT INTO data(name, project, parent, coordinates) VALUES($1, $2, $3, $4) RETURNING id", data.Name, data.Project, data.Parent, coordinates)
+	row := dbData.Create(data, coordinates)
 	err = row.Scan(&data.ID)
 	errors.ErrorHandler(err, 500, w)
 
@@ -149,12 +151,8 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	}
 	coordinates, _ := json.Marshal(data.Coordinates)
 
-	// Подготовка запроса
-	update, err := db.Prepare("UPDATE data SET name = $2, project = $3, parent = $4, coordinates = $5 WHERE id = $1")
-	errors.ErrorHandler(err, 500, w)
-
 	// Выполнение запроса
-	result, err := update.Exec(data.ID, data.Name, data.Project, data.Parent, coordinates)
+	result, err := dbData.Update(data, coordinates)
 	errors.ErrorHandler(err, 500, w)
 
 	// Проверка на успешность
@@ -193,12 +191,8 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Подготовка запроса на удаление Data объекта
-	delete, err := db.Prepare("DELETE FROM data WHERE id = $1")
-	errors.ErrorHandler(err, 500, w)
-
 	// Выполнение запросов
-	result, err := delete.Exec(id)
+	result, err := dbData.Delete(id)
 	errors.ErrorHandler(err, 500, w)
 
 	// Проверка на успешность

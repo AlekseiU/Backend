@@ -9,6 +9,8 @@ import (
 	"MindAssistantBackend/helpers/response"
 	// Interfaces
 	"MindAssistantBackend/interfaces/projects"
+	// Queries
+	"MindAssistantBackend/db/projects"
 	// Libraries
 	"database/sql"
 	"encoding/json"
@@ -24,7 +26,7 @@ var db = config.DbConnect()
 // List отображает список проектов
 func List(w http.ResponseWriter, r *http.Request) {
 	// Подготовка запроса
-	rows, err := db.Query("SELECT * FROM projects")
+	rows, err := dbProjects.List()
 	errors.ErrorHandler(err, 500, w)
 	defer rows.Close()
 
@@ -63,7 +65,7 @@ func Item(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Подготовка запроса
-	row := db.QueryRow("SELECT * FROM projects WHERE id = $1", id)
+	row := dbProjects.Item(id)
 	project := new(iProjects.Model)
 
 	// Сбор данных из БД в структуру
@@ -100,7 +102,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Выполнение запроса
-	row := db.QueryRow("INSERT INTO projects(name, pages) VALUES($1, $2) RETURNING id", project.Name, project.Pages)
+	row := dbProjects.Create(project)
 	err = row.Scan(&project.ID)
 	errors.ErrorHandler(err, 500, w)
 
@@ -132,12 +134,8 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Подготовка запроса
-	update, err := db.Prepare("UPDATE projects SET name = $1, pages = $2 WHERE id = $3")
-	errors.ErrorHandler(err, 500, w)
-
 	// Выполнение запроса
-	result, err := update.Exec(project.Name, project.Pages, project.ID)
+	result, err := dbProjects.Update(project)
 	errors.ErrorHandler(err, 500, w)
 
 	// Проверка на успешность
@@ -168,12 +166,8 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Подготовка запроса на удаление проекта
-	delete, err := db.Prepare("DELETE FROM projects WHERE id = $1")
-	errors.ErrorHandler(err, 500, w)
-
 	// Выполнение запросов
-	result, err := delete.Exec(id)
+	result, err := dbProjects.Delete(id)
 	errors.ErrorHandler(err, 500, w)
 
 	// Проверка на успешность

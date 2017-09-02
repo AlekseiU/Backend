@@ -12,6 +12,8 @@ import (
 	// Interfaces
 	"MindAssistantBackend/interfaces/data"
 	"MindAssistantBackend/interfaces/data/groups"
+	// Queries
+	"MindAssistantBackend/db/data/groups"
 	// Controllers
 	"MindAssistantBackend/controllers/data/fields"
 	// Libraries
@@ -33,7 +35,7 @@ func List(w http.ResponseWriter, r *http.Request, data *iData.Db) []*iFieldGroup
 	}
 
 	// Выполнение запроса
-	rows, err := db.Query("SELECT * FROM field_groups WHERE data = $1", data.ID)
+	rows, err := dbFieldGroups.List(data.ID)
 	errors.ErrorHandler(err, 500, w)
 	defer rows.Close()
 
@@ -62,12 +64,8 @@ func Update(w http.ResponseWriter, r *http.Request, group *iFieldGroup.Model) *i
 		return nil
 	}
 
-	// Подготовка запросов
-	update, err := db.Prepare("UPDATE field_groups set name = $2, ordr = $3, data = $4 where id = $1")
-	errors.ErrorHandler(err, 500, w)
-
 	// Выполнение запросов
-	result, err := update.Exec(group.ID, group.Name, group.Order, group.Data)
+	result, err := dbFieldGroups.Update(group)
 	errors.ErrorHandler(err, 500, w)
 
 	rows, err := result.RowsAffected()
@@ -105,7 +103,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Выполнение запроса
-	row := db.QueryRow("INSERT INTO field_groups (name, ordr, data) VALUES ($1, $2, $3) RETURNING id", group.Name, group.Order, group.Data)
+	row := dbFieldGroups.Create(group)
 	err = row.Scan(&group.ID)
 	errors.ErrorHandler(err, 500, w)
 
@@ -133,12 +131,8 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Подготовка запроса на удаление Data объекта
-	delete, err := db.Prepare("DELETE FROM field_groups WHERE id = $1")
-	errors.ErrorHandler(err, 500, w)
-
 	// Выполнение запросов
-	result, err := delete.Exec(id)
+	result, err := dbFieldGroups.Delete(id)
 	errors.ErrorHandler(err, 500, w)
 
 	// Проверка на успешность
