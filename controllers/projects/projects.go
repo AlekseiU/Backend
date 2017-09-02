@@ -133,18 +133,18 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Подготовка запроса
-	updateProject, err := db.Prepare("UPDATE projects SET name = $1, pages = $2 WHERE id = $3")
+	update, err := db.Prepare("UPDATE projects SET name = $1, pages = $2 WHERE id = $3")
 	errors.ErrorHandler(err, 500, w)
 
 	// Выполнение запроса
-	result, err := updateProject.Exec(project.Name, project.Pages, project.ID)
+	result, err := update.Exec(project.Name, project.Pages, project.ID)
 	errors.ErrorHandler(err, 500, w)
 
 	// Проверка на успешность
-	rowsAffected, err := result.RowsAffected()
+	rows, err := result.RowsAffected()
 	errors.ErrorHandler(err, 500, w)
 
-	if rowsAffected > 0 {
+	if rows > 0 {
 		// Формирование ответа от сервера
 		response := response.Set(true, "", project)
 
@@ -169,20 +169,27 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Подготовка запроса на удаление проекта
-	deleteProject, err := db.Prepare("DELETE FROM projects WHERE id = $1")
+	delete, err := db.Prepare("DELETE FROM projects WHERE id = $1")
 	errors.ErrorHandler(err, 500, w)
 
 	// Выполнение запросов
-	deleteProject.Exec(id)
-
-	// Формирование ответа от сервера
-	response := response.Set(true, "", nil)
-
-	// Подготовка выходных данных
-	output, err := json.Marshal(response)
+	result, err := delete.Exec(id)
 	errors.ErrorHandler(err, 500, w)
 
-	// Отображение результата
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Write(output)
+	// Проверка на успешность
+	rows, err := result.RowsAffected()
+	errors.ErrorHandler(err, 500, w)
+
+	if rows > 0 {
+		// Формирование ответа от сервера
+		response := response.Set(true, "", nil)
+
+		// Подготовка выходных данных
+		output, err := json.Marshal(response)
+		errors.ErrorHandler(err, 500, w)
+
+		// Отображение результата
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Write(output)
+	}
 }

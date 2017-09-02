@@ -26,16 +26,16 @@ var db = config.DbConnect()
 // List отображает список всех Data объектов
 func List(w http.ResponseWriter, r *http.Request) {
 	// Подготовка запроса
-	dataRows, err := db.Query("SELECT * FROM data")
+	rows, err := db.Query("SELECT * FROM data")
 	errors.ErrorHandler(err, 500, w)
-	defer dataRows.Close()
+	defer rows.Close()
 
 	// Сбор данных из БД в структуру
-	dataList := make([]*iData.Model, 0)
-	for dataRows.Next() {
+	list := make([]*iData.Model, 0)
+	for rows.Next() {
 		data := new(iData.Db)
 
-		err := dataRows.Scan(&data.ID, &data.Name, &data.Project, &data.Parent, &data.Coordinates)
+		err := rows.Scan(&data.ID, &data.Name, &data.Project, &data.Parent, &data.Coordinates)
 		errors.ErrorHandler(err, 500, w)
 
 		// Обработка координат
@@ -46,7 +46,7 @@ func List(w http.ResponseWriter, r *http.Request) {
 		content := groups.List(w, r, data)
 
 		// Трансформация Data в новый объект
-		dataResult := &iData.Model{
+		item := &iData.Model{
 			ID:          data.ID,
 			Name:        data.Name,
 			Project:     data.Project,
@@ -55,12 +55,12 @@ func List(w http.ResponseWriter, r *http.Request) {
 			Content:     content,
 		}
 
-		dataList = append(dataList, dataResult)
+		list = append(list, item)
 	}
-	errors.ErrorHandler(dataRows.Err(), 500, w)
+	errors.ErrorHandler(rows.Err(), 500, w)
 
 	// Формирование ответа от сервера
-	response := response.Set(true, "", dataList)
+	response := response.Set(true, "", list)
 
 	// Подготовка выходных данных
 	output, err := json.Marshal(response)
@@ -82,16 +82,16 @@ func ListByProject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Подготовка запроса
-	dataRows, err := db.Query("SELECT * FROM data WHERE project = $1", project)
+	rows, err := db.Query("SELECT * FROM data WHERE project = $1", project)
 	errors.ErrorHandler(err, 500, w)
-	defer dataRows.Close()
+	defer rows.Close()
 
 	// Сбор данных из БД в структуру
-	dataList := make([]*iData.Model, 0)
-	for dataRows.Next() {
+	list := make([]*iData.Model, 0)
+	for rows.Next() {
 		data := new(iData.Db)
 
-		err := dataRows.Scan(&data.ID, &data.Name, &data.Project, &data.Parent, &data.Coordinates)
+		err := rows.Scan(&data.ID, &data.Name, &data.Project, &data.Parent, &data.Coordinates)
 		errors.ErrorHandler(err, 500, w)
 
 		// Обработка координат
@@ -102,7 +102,7 @@ func ListByProject(w http.ResponseWriter, r *http.Request) {
 		content := groups.List(w, r, data)
 
 		// Трансформация Data в новый объект
-		dataResult := &iData.Model{
+		item := &iData.Model{
 			ID:          data.ID,
 			Name:        data.Name,
 			Project:     data.Project,
@@ -111,12 +111,12 @@ func ListByProject(w http.ResponseWriter, r *http.Request) {
 			Content:     content,
 		}
 
-		dataList = append(dataList, dataResult)
+		list = append(list, item)
 	}
-	errors.ErrorHandler(dataRows.Err(), 500, w)
+	errors.ErrorHandler(rows.Err(), 500, w)
 
 	// Формирование ответа от сервера
-	response := response.Set(true, "", dataList)
+	response := response.Set(true, "", list)
 
 	// Подготовка выходных данных
 	output, err := json.Marshal(response)
@@ -242,19 +242,26 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Подготовка запроса на удаление Data объекта
-	deleteData, err := db.Prepare("DELETE FROM data WHERE id = $1")
+	delete, err := db.Prepare("DELETE FROM data WHERE id = $1")
 	errors.ErrorHandler(err, 500, w)
 
 	// Выполнение запросов
-	deleteData.Exec(id)
-
-	// Формирование ответа от сервера
-	response := response.Set(true, "", nil)
-
-	// Подготовка выходных данных
-	output, err := json.Marshal(response)
+	result, err := delete.Exec(id)
 	errors.ErrorHandler(err, 500, w)
 
-	// Отображение результата
-	w.Write(output)
+	// Проверка на успешность
+	rows, err := result.RowsAffected()
+	errors.ErrorHandler(err, 500, w)
+
+	if rows > 0 {
+		// Формирование ответа от сервера
+		response := response.Set(true, "", nil)
+
+		// Подготовка выходных данных
+		output, err := json.Marshal(response)
+		errors.ErrorHandler(err, 500, w)
+
+		// Отображение результата
+		w.Write(output)
+	}
 }
