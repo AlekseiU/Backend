@@ -141,8 +141,12 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Обработка координат
+	coordinates, err := json.Marshal(data.Coordinates)
+	errors.ErrorHandler(err, 500, w)
+
 	// Выполнение запроса
-	row := db.QueryRow("INSERT INTO data(name, project) VALUES($1, $2) RETURNING id", data.Name, data.Project)
+	row := db.QueryRow("INSERT INTO data(name, project, parent, coordinates) VALUES($1, $2, $3, $4) RETURNING id", data.Name, data.Project, data.Parent, coordinates)
 	err = row.Scan(&data.ID)
 	errors.ErrorHandler(err, 500, w)
 
