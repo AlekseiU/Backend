@@ -4,6 +4,7 @@ package dbData
 import (
 	// Config
 	"MindAssistantBackend/config"
+	"encoding/json"
 	// Interfaces
 	"MindAssistantBackend/interfaces/data"
 	// Packages
@@ -21,12 +22,21 @@ func List(id string) (*sql.Rows, error) {
 }
 
 // Create создает новый проект
-func Create(data *iData.Model, coordinates []byte) *sql.Row {
+func Create(data *iData.Model) *sql.Row {
+	// Обработка координат
+	coordinates, _ := json.Marshal(data.Coordinates)
+
 	return db.QueryRow("INSERT INTO data(name, project, parent, coordinates) VALUES($1, $2, $3, $4) RETURNING id", data.Name, data.Project, data.Parent, coordinates)
 }
 
 // Update обновляет данные проекта
-func Update(data *iData.Model, coordinates []byte) (sql.Result, error) {
+func Update(data *iData.Model) (sql.Result, error) {
+	// Обработка координат
+	if data.Coordinates == nil {
+		data.Coordinates = map[string]float64{"x": 0, "y": 0}
+	}
+	coordinates, _ := json.Marshal(data.Coordinates)
+
 	// Подготовка запроса
 	update, err := db.Prepare("UPDATE data SET name = $2, project = $3, parent = $4, coordinates = $5 WHERE id = $1")
 	if err != nil {

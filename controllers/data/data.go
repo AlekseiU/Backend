@@ -95,12 +95,8 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Обработка координат
-	coordinates, err := json.Marshal(data.Coordinates)
-	errors.ErrorHandler(err, 500, w)
-
 	// Выполнение запроса
-	row := dbData.Create(data, coordinates)
+	row := dbData.Create(data)
 	err = row.Scan(&data.ID)
 	errors.ErrorHandler(err, 500, w)
 
@@ -145,14 +141,8 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Обработка координат
-	if data.Coordinates == nil {
-		data.Coordinates = map[string]float64{"x": 0, "y": 0}
-	}
-	coordinates, _ := json.Marshal(data.Coordinates)
-
 	// Выполнение запроса
-	result, err := dbData.Update(data, coordinates)
+	result, err := dbData.Update(data)
 	errors.ErrorHandler(err, 500, w)
 
 	// Проверка на успешность

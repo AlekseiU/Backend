@@ -1,4 +1,4 @@
-// dbGroups содержит набор набор запросов для работы с Data
+// dbFieldGroups содержит набор запросов для работы с Data
 package dbFieldGroups
 
 import (
