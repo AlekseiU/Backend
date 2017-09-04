@@ -1,7 +1,7 @@
 // Package iResponse содержит интерфейсы ответа клиенту
 package iResponse
 
-// Response - структура ответа
+// Model основная структура интерфейса
 type Model struct {
 	Result  bool        `json:"result"`
 	Message string      `json:"message"`

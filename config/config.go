@@ -4,6 +4,8 @@ package config
 import (
 	"MindAssistantBackend/helpers/errors"
 	"database/sql"
+	// Регистрация драйвера Postgres
+	_ "github.com/lib/pq"
 )
 
 // Port указывает на текущий порт бэкенда

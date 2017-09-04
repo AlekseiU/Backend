@@ -1,4 +1,4 @@
-// dbProjects содержит набор набор запросов для работы с проектами
+// Package dbProjects содержит набор набор запросов для работы с проектами
 package dbProjects
 
 import (
@@ -8,8 +8,6 @@ import (
 	"MindAssistantBackend/interfaces/projects"
 	// Packages
 	"database/sql"
-
-	_ "github.com/lib/pq"
 )
 
 // Соединение с БД

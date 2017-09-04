@@ -1,4 +1,4 @@
-// dbData содержит набор набор запросов для работы с Data
+// Package dbData содержит набор набор запросов для работы с Data
 package dbData
 
 import (
@@ -9,8 +9,6 @@ import (
 	"MindAssistantBackend/interfaces/data"
 	// Packages
 	"database/sql"
-
-	_ "github.com/lib/pq"
 )
 
 // Соединение с БД

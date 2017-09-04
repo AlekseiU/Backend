@@ -19,7 +19,6 @@ import (
 	"net/http"
 	// Packages
 	"github.com/gorilla/mux"
-	_ "github.com/lib/pq"
 )
 
 // Соединение с БД

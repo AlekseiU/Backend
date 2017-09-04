@@ -7,6 +7,7 @@ import (
 	"MindAssistantBackend/interfaces/data/groups"
 )
 
+// Model основная структура интерфейса
 type Model struct {
 	ID          int64                `json:"id"`
 	Name        string               `json:"name"`
@@ -16,6 +17,7 @@ type Model struct {
 	Content     []*iFieldGroup.Model `json:"content"`
 }
 
+// Db структура для работы с БД
 type Db struct {
 	ID          int64  `json:"id"`
 	Name        string `json:"name"`

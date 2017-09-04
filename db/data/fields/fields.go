@@ -1,4 +1,4 @@
-// dbFields содержит набор набор запросов для работы с Data
+// Package dbFields содержит набор набор запросов для работы с полями Data объектов
 package dbFields
 
 import (
@@ -8,8 +8,6 @@ import (
 	"MindAssistantBackend/interfaces/data/fields"
 	// Packages
 	"database/sql"
-
-	_ "github.com/lib/pq"
 )
 
 // Соединение с БД

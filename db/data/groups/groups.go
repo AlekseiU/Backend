@@ -1,4 +1,4 @@
-// dbFieldGroups содержит набор запросов для работы с Data
+// Package dbFieldGroups содержит набор запросов для работы с группами полей Data объектов
 package dbFieldGroups
 
 import (
@@ -8,8 +8,6 @@ import (
 	"MindAssistantBackend/interfaces/data/groups"
 	// Packages
 	"database/sql"
-
-	_ "github.com/lib/pq"
 )
 
 // Соединение с БД

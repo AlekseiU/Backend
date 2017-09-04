@@ -1,4 +1,4 @@
-// Projects содержит набор служебных функция для работы с проектами
+// Package projects содержит набор служебных функция для работы с проектами
 package projects
 
 import (
@@ -17,7 +17,6 @@ import (
 	"net/http"
 	// Packages
 	"github.com/gorilla/mux"
-	_ "github.com/lib/pq"
 )
 
 // Соединение с БД
@@ -64,7 +63,7 @@ func Item(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Подготовка запроса
+	// Выполнение запроса
 	row := dbProjects.Item(id)
 	project := new(iProjects.Model)
 
