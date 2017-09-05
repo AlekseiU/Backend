@@ -2,53 +2,37 @@
 package config
 
 import (
+	// Config
+	"MindAssistantBackend/config/db"
+	"MindAssistantBackend/config/server"
+	// Helpers
 	"MindAssistantBackend/helpers/errors"
-	"database/sql"
 	// Interfaces
-	"MindAssistantBackend/interfaces/config"
+	"MindAssistantBackend/interfaces/config/server"
+	// Libraries
+	"database/sql"
 	// Регистрация драйвера Postgres
 	_ "github.com/lib/pq"
 )
 
 // Server устанавливает настройки сервера
-func Server(mode *string) *iConfig.Server {
+func Server(mode *string) *iServer.Model {
 	switch *mode {
 	case "local":
-		config := &iConfig.Server{
-			Port:           "3000",
-			AllowedMethods: []string{"GET", "DELETE", "POST", "PUT", "OPTIONS"},
-		}
-
-		return config
+		return server.Local
 	}
 
 	return nil
 }
 
-// Db устанавливает настройки БД
-func Db() *iConfig.Db {
-	config := &iConfig.Db{
-		DbUser:     "urivsky",
-		DbPassword: "123581321",
-		DbName:     "mindassistant",
-		DbSsl:      "disable",
-	}
-
-	return config
-}
-
 // DbConnect устанавливает соединение с БД
 func DbConnect() *sql.DB {
-	// Служебные переменные
-	var err error
-	var db *sql.DB
-
 	// Открываем соединение
-	db, err = sql.Open("postgres", "user="+Db().DbUser+" password="+Db().DbPassword+" dbname="+Db().DbName+" sslmode="+Db().DbSsl)
+	output, err := sql.Open("postgres", "user="+db.Config.DbUser+" password="+db.Config.DbPassword+" dbname="+db.Config.DbName+" sslmode="+db.Config.DbSsl)
 	errors.ErrorHandler(err, 500, nil)
 
 	// Отслеживаем состояние канала передачи данных
-	errors.ErrorHandler(db.Ping(), 500, nil)
+	errors.ErrorHandler(output.Ping(), 500, nil)
 
-	return db
+	return output
 }

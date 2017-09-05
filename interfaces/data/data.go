@@ -3,7 +3,6 @@ package iData
 
 import (
 	// Interfaces
-
 	"MindAssistantBackend/interfaces/data/groups"
 )
 

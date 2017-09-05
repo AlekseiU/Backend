@@ -1,16 +1,14 @@
 // Package iConfig содержит интерфейс настройки сервера
 package iConfig
 
-// Server структура настроек сервера
-type Server struct {
-	Port           string
-	AllowedMethods []string
-}
+import (
+	// Interfaces
+	"MindAssistantBackend/interfaces/config/db"
+	"MindAssistantBackend/interfaces/config/server"
+)
 
-// Db структура настроек БД
-type Db struct {
-	DbUser     string
-	DbPassword string
-	DbName     string
-	DbSsl      string
+// Model основная структура интерфейса
+type Model struct {
+	Server *iServer.Model
+	Db     *iDb.Model
 }
