@@ -4,21 +4,19 @@ package routes
 import (
 	"net/http"
 	// Config
-
+	"MindAssistantBackend/config"
 	// Controllers
 	"MindAssistantBackend/controllers/data"
 	"MindAssistantBackend/controllers/data/fields"
 	"MindAssistantBackend/controllers/data/groups"
 	"MindAssistantBackend/controllers/projects"
-	// Libraries
-
 	// Packages
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 )
 
 // Handle формирует роуты
-func Handle() http.Handler {
+func Handle(mode *string) http.Handler {
 	router := mux.NewRouter()
 
 	// Методы для работы с проектами
@@ -66,7 +64,7 @@ func Handle() http.Handler {
 
 	// Список роутов
 	handler := cors.New(cors.Options{
-		AllowedMethods: []string{"GET", "DELETE", "POST", "PUT", "OPTIONS"},
+		AllowedMethods: config.Server(mode).AllowedMethods,
 	}).Handler(router)
 
 	return handler

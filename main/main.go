@@ -6,9 +6,15 @@ import (
 	// Routes
 	"MindAssistantBackend/routes"
 	// Libraries
+	"flag"
 	"net/http"
 )
 
 func main() {
-	http.ListenAndServe(":"+config.Port, routes.Handle())
+	// Тип запускаемого сервера
+	mode := flag.String("mode", "", "")
+	flag.Parse()
+
+	// Запуск сервера
+	http.ListenAndServe(":"+config.Server(mode).Port, routes.Handle(mode))
 }
