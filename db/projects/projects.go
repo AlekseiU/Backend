@@ -2,16 +2,16 @@
 package dbProjects
 
 import (
-	// Config
-	"MindAssistantBackend/config"
 	// Interfaces
 	"MindAssistantBackend/interfaces/projects"
+	// Queries
+	"MindAssistantBackend/db/connect"
 	// Packages
 	"database/sql"
 )
 
 // Соединение с БД
-var db = config.DbConnect()
+var db = connect.Db()
 
 // List отображает список проектов
 func List() (*sql.Rows, error) {

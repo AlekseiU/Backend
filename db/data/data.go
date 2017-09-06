@@ -2,17 +2,17 @@
 package dbData
 
 import (
-	// Config
-	"MindAssistantBackend/config"
-	"encoding/json"
 	// Interfaces
 	"MindAssistantBackend/interfaces/data"
+	// Queries
+	"MindAssistantBackend/db/connect"
 	// Packages
 	"database/sql"
+	"encoding/json"
 )
 
 // Соединение с БД
-var db = config.DbConnect()
+var db = connect.Db()
 
 // List отображает список проектов
 func List(id string) (*sql.Rows, error) {

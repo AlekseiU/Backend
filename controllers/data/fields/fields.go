@@ -2,9 +2,6 @@
 package fields
 
 import (
-	// Config
-	"MindAssistantBackend/config"
-	"encoding/json"
 	// Helpers
 	"MindAssistantBackend/helpers/errors"
 	"MindAssistantBackend/helpers/response"
@@ -12,15 +9,17 @@ import (
 	"MindAssistantBackend/interfaces/data/fields"
 	"MindAssistantBackend/interfaces/data/groups"
 	// Queries
+	"MindAssistantBackend/db/connect"
 	"MindAssistantBackend/db/data/fields"
 	// Libraries
+	"encoding/json"
 	"net/http"
 	// Packages
 	"github.com/gorilla/mux"
 )
 
 // Соединение с БД
-var db = config.DbConnect()
+var db = connect.Db()
 
 // List выводит список полей
 func List(w http.ResponseWriter, r *http.Request, group *iFieldGroup.Model) []*iField.Model {

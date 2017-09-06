@@ -2,16 +2,16 @@
 package dbFieldGroups
 
 import (
-	// Config
-	"MindAssistantBackend/config"
 	// Interfaces
 	"MindAssistantBackend/interfaces/data/groups"
+	// Queries
+	"MindAssistantBackend/db/connect"
 	// Packages
 	"database/sql"
 )
 
 // Соединение с БД
-var db = config.DbConnect()
+var db = connect.Db()
 
 // List отображает список проектов
 func List(id int64) (*sql.Rows, error) {

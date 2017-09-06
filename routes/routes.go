@@ -16,7 +16,7 @@ import (
 )
 
 // Handle формирует роуты
-func Handle(mode *string) http.Handler {
+func Handle() http.Handler {
 	router := mux.NewRouter()
 
 	// Методы для работы с проектами
@@ -64,7 +64,7 @@ func Handle(mode *string) http.Handler {
 
 	// Список роутов
 	handler := cors.New(cors.Options{
-		AllowedMethods: config.Server(mode).AllowedMethods,
+		AllowedMethods: config.Server().AllowedMethods,
 	}).Handler(router)
 
 	return handler

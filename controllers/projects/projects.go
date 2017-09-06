@@ -2,14 +2,13 @@
 package projects
 
 import (
-	// Config
-	"MindAssistantBackend/config"
 	// Helpers
 	"MindAssistantBackend/helpers/errors"
 	"MindAssistantBackend/helpers/response"
 	// Interfaces
 	"MindAssistantBackend/interfaces/projects"
 	// Queries
+	"MindAssistantBackend/db/connect"
 	"MindAssistantBackend/db/projects"
 	// Libraries
 	"database/sql"
@@ -20,7 +19,7 @@ import (
 )
 
 // Соединение с БД
-var db = config.DbConnect()
+var db = connect.Db()
 
 // List отображает список проектов
 func List(w http.ResponseWriter, r *http.Request) {

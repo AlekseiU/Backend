@@ -2,8 +2,6 @@
 package data
 
 import (
-	// Config
-	"MindAssistantBackend/config"
 	// Helpers
 	"MindAssistantBackend/helpers/errors"
 	"MindAssistantBackend/helpers/response"
@@ -11,6 +9,7 @@ import (
 	"MindAssistantBackend/interfaces/data"
 	"MindAssistantBackend/interfaces/data/groups"
 	// Queries
+	"MindAssistantBackend/db/connect"
 	"MindAssistantBackend/db/data"
 	// Controllers
 	"MindAssistantBackend/controllers/data/groups"
@@ -22,7 +21,7 @@ import (
 )
 
 // Соединение с БД
-var db = config.DbConnect()
+var db = connect.Db()
 
 // List отображает список Data объектов по id проекта
 func List(w http.ResponseWriter, r *http.Request) {

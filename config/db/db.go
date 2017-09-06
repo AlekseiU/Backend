@@ -6,8 +6,8 @@ import (
 	"MindAssistantBackend/interfaces/config/db"
 )
 
-// Config содержит доступы к БД
-var Config = &iDb.Model{
+// Local содержит локальные доступы к БД
+var Local = &iDb.Model{
 	DbUser:     "urivsky",
 	DbPassword: "123581321",
 	DbName:     "mindassistant",

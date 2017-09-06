@@ -4,20 +4,19 @@ package config
 import (
 	// Config
 	"MindAssistantBackend/config/db"
+	"MindAssistantBackend/config/mode"
 	"MindAssistantBackend/config/server"
-	// Helpers
-	"MindAssistantBackend/helpers/errors"
 	// Interfaces
+	"MindAssistantBackend/interfaces/config/db"
 	"MindAssistantBackend/interfaces/config/server"
-	// Libraries
-	"database/sql"
-	// Регистрация драйвера Postgres
-	_ "github.com/lib/pq"
 )
 
+// Mode содержит тип сервера
+var Mode = mode.Type()
+
 // Server устанавливает настройки сервера
-func Server(mode *string) *iServer.Model {
-	switch *mode {
+func Server() *iServer.Model {
+	switch *Mode {
 	case "local":
 		return server.Local
 	}
@@ -25,14 +24,12 @@ func Server(mode *string) *iServer.Model {
 	return nil
 }
 
-// DbConnect устанавливает соединение с БД
-func DbConnect() *sql.DB {
-	// Открываем соединение
-	output, err := sql.Open("postgres", "user="+db.Config.DbUser+" password="+db.Config.DbPassword+" dbname="+db.Config.DbName+" sslmode="+db.Config.DbSsl)
-	errors.ErrorHandler(err, 500, nil)
+// Db устанавливает настройки сервера
+func Db() *iDb.Model {
+	switch *Mode {
+	case "local":
+		return db.Local
+	}
 
-	// Отслеживаем состояние канала передачи данных
-	errors.ErrorHandler(output.Ping(), 500, nil)
-
-	return output
+	return nil
 }
