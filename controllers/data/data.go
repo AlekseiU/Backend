@@ -13,10 +13,10 @@ import (
 	"MindAssistantBackend/db/data"
 	// Controllers
 	"MindAssistantBackend/controllers/data/groups"
-	// Libraries
+	// Packages
 	"encoding/json"
 	"net/http"
-	// Packages
+	// Libraries
 	"github.com/gorilla/mux"
 )
 

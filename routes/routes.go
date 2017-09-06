@@ -2,7 +2,6 @@
 package routes
 
 import (
-	"net/http"
 	// Config
 	"MindAssistantBackend/config"
 	// Controllers
@@ -11,6 +10,8 @@ import (
 	"MindAssistantBackend/controllers/data/groups"
 	"MindAssistantBackend/controllers/projects"
 	// Packages
+	"net/http"
+	// Libraries
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 )

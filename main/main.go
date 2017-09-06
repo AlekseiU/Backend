@@ -5,8 +5,7 @@ import (
 	"MindAssistantBackend/config"
 	// Routes
 	"MindAssistantBackend/routes"
-	// Libraries
-
+	// Packages
 	"net/http"
 )
 

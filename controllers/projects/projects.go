@@ -10,11 +10,11 @@ import (
 	// Queries
 	"MindAssistantBackend/db/connect"
 	"MindAssistantBackend/db/projects"
-	// Libraries
+	// Packages
 	"database/sql"
 	"encoding/json"
 	"net/http"
-	// Packages
+	// Libraries
 	"github.com/gorilla/mux"
 )
 

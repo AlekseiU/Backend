@@ -2,7 +2,7 @@
 package mode
 
 import (
-	// Libraries
+	// Packages
 	"flag"
 )
 

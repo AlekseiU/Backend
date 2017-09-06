@@ -6,7 +6,7 @@ import (
 	"MindAssistantBackend/config"
 	// Helpers
 	"MindAssistantBackend/helpers/errors"
-	// Libraries
+	// Packages
 	"database/sql"
 	// Регистрация драйвера Postgres
 	_ "github.com/lib/pq"
