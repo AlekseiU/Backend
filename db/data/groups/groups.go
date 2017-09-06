@@ -26,13 +26,13 @@ func Create(group *iFieldGroup.Model) *sql.Row {
 // Update обновляет данные проекта
 func Update(group *iFieldGroup.Model) (sql.Result, error) {
 	// Подготовка запроса
-	update, err := db.Prepare("UPDATE field_groups set name = $2, ordr = $3, data = $4 where id = $1")
+	update, err := db.Prepare("UPDATE field_groups set name = $2, ordr = $3, data = $4, collapsed = $5 where id = $1")
 	if err != nil {
 		return nil, err
 	}
 
 	// Выполнение запроса
-	return update.Exec(group.ID, group.Name, group.Order, group.Data)
+	return update.Exec(group.ID, group.Name, group.Order, group.Data, group.Collapsed)
 }
 
 // Delete удаляет проект по его id и все связанные с ним данные

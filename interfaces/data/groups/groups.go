@@ -8,9 +8,10 @@ import (
 
 // Model основная структура интерфейса
 type Model struct {
-	ID     int64           `json:"id"`
-	Name   string          `json:"name"`
-	Order  int             `json:"order"`
-	Data   int64           `json:"data"`
-	Fields []*iField.Model `json:"fields"`
+	ID        int64           `json:"id"`
+	Name      string          `json:"name"`
+	Order     int             `json:"order"`
+	Data      int64           `json:"data"`
+	Collapsed bool            `json:"collapsed"`
+	Fields    []*iField.Model `json:"fields"`
 }

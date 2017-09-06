@@ -41,7 +41,7 @@ func List(w http.ResponseWriter, r *http.Request, data *iData.Db) []*iFieldGroup
 	for rows.Next() {
 		group := new(iFieldGroup.Model)
 
-		err := rows.Scan(&group.ID, &group.Name, &group.Order, &group.Data)
+		err := rows.Scan(&group.ID, &group.Name, &group.Order, &group.Data, &group.Collapsed)
 		errors.ErrorHandler(err, 500, w)
 
 		// Сбор данных из таблицы fields связанных с Data объектом
