@@ -12,7 +12,7 @@ func ErrorHandler(err error, code int, w http.ResponseWriter) {
 	if err != nil {
 		log.Print(err) // <= Режим отладки
 		if w != nil {
-			http.Error(w, http.StatusText(500), 500)
+			http.Error(w, err.Error(), code)
 			return
 		}
 	}
