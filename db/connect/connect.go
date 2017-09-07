@@ -1,5 +1,5 @@
 // Package connect устанавливает соединение с БД
-package connect
+package dbConnect
 
 import (
 	// Config
@@ -12,8 +12,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// Db устанавливает соединение с БД
-func Db() *sql.DB {
+// Init устанавливает соединение с БД
+func Init() *sql.DB {
 	config := config.Db()
 
 	// Открываем соединение

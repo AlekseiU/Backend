@@ -1,5 +1,5 @@
-// Package dbFieldGroups содержит набор запросов для работы с группами полей Data объектов
-package dbFieldGroups
+// Package dbGroups содержит набор запросов для работы с группами полей Data объектов
+package dbGroups
 
 import (
 	// Interfaces
@@ -11,7 +11,7 @@ import (
 )
 
 // Соединение с БД
-var db = connect.Db()
+var db = dbConnect.Init()
 
 // List отображает список проектов
 func List(id int64) (*sql.Rows, error) {

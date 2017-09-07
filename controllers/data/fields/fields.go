@@ -19,7 +19,7 @@ import (
 )
 
 // Соединение с БД
-var db = connect.Db()
+var db = dbConnect.Init()
 
 // List выводит список полей
 func List(w http.ResponseWriter, r *http.Request, group *iFieldGroup.Model) []*iField.Model {

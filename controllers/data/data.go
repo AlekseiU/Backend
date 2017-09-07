@@ -21,7 +21,7 @@ import (
 )
 
 // Соединение с БД
-var db = connect.Db()
+var db = dbConnect.Init()
 
 // List отображает список Data объектов по id проекта
 func List(w http.ResponseWriter, r *http.Request) {

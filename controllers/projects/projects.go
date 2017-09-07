@@ -19,7 +19,7 @@ import (
 )
 
 // Соединение с БД
-var db = connect.Db()
+var db = dbConnect.Init()
 
 // List отображает список проектов
 func List(w http.ResponseWriter, r *http.Request) {

@@ -11,7 +11,7 @@ import (
 )
 
 // Соединение с БД
-var db = connect.Db()
+var db = dbConnect.Init()
 
 // List отображает список проектов
 func List() (*sql.Rows, error) {

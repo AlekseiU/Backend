@@ -21,7 +21,7 @@ import (
 )
 
 // Соединение с БД
-var db = connect.Db()
+var db = dbConnect.Init()
 
 // List выводит группы полей
 func List(w http.ResponseWriter, r *http.Request, data *iData.Db) []*iFieldGroup.Model {
@@ -32,7 +32,7 @@ func List(w http.ResponseWriter, r *http.Request, data *iData.Db) []*iFieldGroup
 	}
 
 	// Выполнение запроса
-	rows, err := dbFieldGroups.List(data.ID)
+	rows, err := dbGroups.List(data.ID)
 	errors.ErrorHandler(err, 500, w)
 	defer rows.Close()
 
@@ -62,7 +62,7 @@ func Update(w http.ResponseWriter, r *http.Request, group *iFieldGroup.Model) *i
 	}
 
 	// Выполнение запросов
-	result, err := dbFieldGroups.Update(group)
+	result, err := dbGroups.Update(group)
 	errors.ErrorHandler(err, 500, w)
 
 	rows, err := result.RowsAffected()
@@ -100,7 +100,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Выполнение запроса
-	row := dbFieldGroups.Create(group)
+	row := dbGroups.Create(group)
 	err = row.Scan(&group.ID)
 	errors.ErrorHandler(err, 500, w)
 
@@ -129,7 +129,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Выполнение запросов
-	result, err := dbFieldGroups.Delete(id)
+	result, err := dbGroups.Delete(id)
 	errors.ErrorHandler(err, 500, w)
 
 	// Проверка на успешность
