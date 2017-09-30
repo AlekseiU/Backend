@@ -8,4 +8,5 @@ type Model struct {
 	Value string `json:"value"`
 	Order int    `json:"order"`
 	Group int64  `json:"group"`
+	Title string `json:"title"`
 }

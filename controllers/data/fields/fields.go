@@ -39,7 +39,7 @@ func List(w http.ResponseWriter, r *http.Request, group *iFieldGroup.Model) []*i
 	for rows.Next() {
 		field := new(iField.Model)
 
-		err := rows.Scan(&field.ID, &field.Type, &field.Order, &field.Value, &field.Group)
+		err := rows.Scan(&field.ID, &field.Type, &field.Order, &field.Value, &field.Group, &field.Title)
 		errors.ErrorHandler(err, 500, w)
 
 		list = append(list, field)

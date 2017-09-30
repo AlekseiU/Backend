@@ -20,19 +20,19 @@ func List(id int64) (*sql.Rows, error) {
 
 // Create создает новый проект
 func Create(field *iField.Model) *sql.Row {
-	return db.QueryRow("INSERT INTO fields (type, ordr, value, group_id) VALUES ($1, $2, $3, $4) RETURNING id", field.Type, field.Order, field.Value, field.Group)
+	return db.QueryRow("INSERT INTO fields (type, ordr, value, group_id, title) VALUES ($1, $2, $3, $4, $5) RETURNING id", field.Type, field.Order, field.Value, field.Group, field.Title)
 }
 
 // Update обновляет данные проекта
 func Update(field *iField.Model) (sql.Result, error) {
 	// Подготовка запроса
-	update, err := db.Prepare("UPDATE fields set type = $2, ordr = $3, value = $4, group_id = $5 where id = $1")
+	update, err := db.Prepare("UPDATE fields set type = $2, ordr = $3, value = $4, group_id = $5, title = $6 where id = $1")
 	if err != nil {
 		return nil, err
 	}
 
 	// Выполнение запроса
-	return update.Exec(field.ID, field.Type, field.Order, field.Value, field.Group)
+	return update.Exec(field.ID, field.Type, field.Order, field.Value, field.Group, field.Title)
 }
 
 // Delete удаляет проект по его id и все связанные с ним данные
