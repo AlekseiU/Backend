@@ -53,16 +53,6 @@ func List(w http.ResponseWriter, r *http.Request, group *iFieldGroup.Model) []*i
 			Value: strings.Split(field.Value, ";"),
 		}
 
-		// json.Unmarshal(field.Value, &output.Value)
-		// fmt.Println(len(output.Value))
-
-		// for v := 0; v < len(field.Value); v++ {
-		// 	output.Value[v] = string(byte(field.Value[v]))
-		// }
-		// field.Value
-
-		// json.Unmarshal(field.Value, &output.Value)
-
 		if output.Value == nil {
 			output.Value = make([]string, 1)
 		}
@@ -88,7 +78,12 @@ func Update(w http.ResponseWriter, r *http.Request, field *iField.Model) *iField
 		Order: field.Order,
 		Group: field.Group,
 		Title: field.Title,
-		Value: strings.Join(field.Value, ";"),
+	}
+
+	if len(field.Value) > 1 {
+		output.Value = strings.Join(field.Value, ";")
+	} else {
+		output.Value = field.Value[0]
 	}
 
 	// Выполнение запросов
