@@ -2,9 +2,11 @@
 package fields
 
 import (
+
 	// Helpers
 	"MindAssistantBackend/helpers/errors"
 	"MindAssistantBackend/helpers/response"
+	"strings"
 	// Interfaces
 	"MindAssistantBackend/interfaces/data/fields"
 	"MindAssistantBackend/interfaces/data/groups"
@@ -37,12 +39,35 @@ func List(w http.ResponseWriter, r *http.Request, group *iFieldGroup.Model) []*i
 	// Сбор данных из БД в структуру
 	list := make([]*iField.Model, 0)
 	for rows.Next() {
-		field := new(iField.Model)
+		field := new(iField.Db)
 
 		err := rows.Scan(&field.ID, &field.Type, &field.Order, &field.Value, &field.Group, &field.Title)
 		errors.ErrorHandler(err, 500, w)
 
-		list = append(list, field)
+		output := &iField.Model{
+			ID:    field.ID,
+			Type:  field.Type,
+			Order: field.Order,
+			Group: field.Group,
+			Title: field.Title,
+			Value: strings.Split(field.Value, ";"),
+		}
+
+		// json.Unmarshal(field.Value, &output.Value)
+		// fmt.Println(len(output.Value))
+
+		// for v := 0; v < len(field.Value); v++ {
+		// 	output.Value[v] = string(byte(field.Value[v]))
+		// }
+		// field.Value
+
+		// json.Unmarshal(field.Value, &output.Value)
+
+		if output.Value == nil {
+			output.Value = make([]string, 1)
+		}
+
+		list = append(list, output)
 	}
 	errors.ErrorHandler(rows.Err(), 500, w)
 
@@ -50,14 +75,24 @@ func List(w http.ResponseWriter, r *http.Request, group *iFieldGroup.Model) []*i
 }
 
 // Update обновляет поле
-func Update(w http.ResponseWriter, r *http.Request, field *iField.Model) *iField.Model {
+func Update(w http.ResponseWriter, r *http.Request, field *iField.Model) *iField.Db {
 	if field.ID <= 0 {
 		http.Error(w, http.StatusText(400), 400)
 		return nil
 	}
 
+	// Подготовка запроса
+	output := &iField.Db{
+		ID:    field.ID,
+		Type:  field.Type,
+		Order: field.Order,
+		Group: field.Group,
+		Title: field.Title,
+		Value: strings.Join(field.Value, ";"),
+	}
+
 	// Выполнение запросов
-	result, err := dbFields.Update(field)
+	result, err := dbFields.Update(output)
 	errors.ErrorHandler(err, 500, w)
 
 	rows, err := result.RowsAffected()
@@ -66,7 +101,7 @@ func Update(w http.ResponseWriter, r *http.Request, field *iField.Model) *iField
 	// Проверка на успешность
 	if rows > 0 {
 		// Отображение результата
-		return field
+		return output
 	}
 
 	return nil
