@@ -3,13 +3,24 @@ package db
 
 import (
 	// Interfaces
+	"MindAssistantBackend/helpers/errors"
 	"MindAssistantBackend/interfaces/config/db"
+	// Libraries
+	"encoding/json"
+	"io/ioutil"
+	"os"
 )
 
-// Local содержит локальные доступы к БД
-var Local = &iDb.Model{
-	DbUser:     "urivsky",
-	DbPassword: "123581321",
-	DbName:     "mindassistant",
-	DbSsl:      "disable",
+// Config возвращает настройки сервера
+func Config(mode string) *iDb.Model {
+	raw, err := ioutil.ReadFile("./config/" + mode + "/db.json")
+	if err != nil {
+		errors.ErrorHandler(err, 500, nil)
+		os.Exit(1)
+	}
+
+	var settings *iDb.Model
+	json.Unmarshal(raw, &settings)
+
+	return settings
 }

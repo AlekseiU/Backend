@@ -16,20 +16,10 @@ var Mode = mode.Type()
 
 // Server устанавливает настройки сервера
 func Server() *iServer.Model {
-	switch *Mode {
-	case "local":
-		return server.Local
-	}
-
-	return nil
+	return server.Config(*Mode)
 }
 
 // Db устанавливает настройки сервера
 func Db() *iDb.Model {
-	switch *Mode {
-	case "local":
-		return db.Local
-	}
-
-	return nil
+	return db.Config(*Mode)
 }
