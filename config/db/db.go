@@ -13,14 +13,14 @@ import (
 
 // Config возвращает настройки сервера
 func Config(mode string) *iDb.Model {
-	raw, err := ioutil.ReadFile("./config/" + mode + "/db.json")
+	config, err := ioutil.ReadFile("./config/" + mode + "/db.json")
 	if err != nil {
 		errors.ErrorHandler(err, 500, nil)
 		os.Exit(1)
 	}
 
 	var settings *iDb.Model
-	json.Unmarshal(raw, &settings)
+	json.Unmarshal(config, &settings)
 
 	return settings
 }
