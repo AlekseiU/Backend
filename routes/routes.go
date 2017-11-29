@@ -9,6 +9,8 @@ import (
 	"MindAssistantBackend/controllers/data/fields"
 	"MindAssistantBackend/controllers/data/groups"
 	"MindAssistantBackend/controllers/projects"
+	// Public
+	"MindAssistantBackend/public/scrapper"
 	// Packages
 	"net/http"
 	// Libraries
@@ -56,12 +58,16 @@ func Handle() http.Handler {
 	router.HandleFunc("/data/groups/{id}", groups.Delete).
 		Methods("OPTIONS", "DELETE")
 
-	// // Методы для работы с группами полей Data объектов
+	// Методы для работы с группами полей Data объектов
 	router.HandleFunc("/data/fields", fields.Create).
 		Methods("OPTIONS", "POST")
 
 	router.HandleFunc("/data/fields/{id}", fields.Delete).
 		Methods("OPTIONS", "DELETE")
+
+	// Вспомогательные публичные методы
+	router.HandleFunc("/scrap", scrapper.Parse).
+		Methods("OPTIONS", "POST")
 
 	// Список роутов
 	handler := cors.New(cors.Options{
