@@ -14,8 +14,8 @@ import (
 var db = dbConnect.Init()
 
 // List отображает список проектов
-func List() (*sql.Rows, error) {
-	return db.Query("SELECT * FROM projects")
+func List(owner float64) (*sql.Rows, error) {
+	return db.Query("SELECT * FROM projects WHERE owner = $1", owner)
 }
 
 // Item отображет проект по его id
@@ -25,7 +25,7 @@ func Item(id string) *sql.Row {
 
 // Create создает новый проект
 func Create(project *iProjects.Model) *sql.Row {
-	return db.QueryRow("INSERT INTO projects(name, pages) VALUES($1, $2) RETURNING id", project.Name, project.Pages)
+	return db.QueryRow("INSERT INTO projects(name, pages, owner) VALUES($1, $2, $3) RETURNING id", project.Name, project.Pages, project.Owner)
 }
 
 // Update обновляет данные проекта

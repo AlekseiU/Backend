@@ -2,6 +2,8 @@
 package projects
 
 import (
+	// Config
+	"MindAssistantBackend/config"
 	// Helpers
 	"MindAssistantBackend/helpers/errors"
 	"MindAssistantBackend/helpers/response"
@@ -13,18 +15,51 @@ import (
 	// Packages
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 	// Libraries
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 )
 
 // Соединение с БД
 var db = dbConnect.Init()
 
+// Токен пользователя
+var tokenString string
+
 // List отображает список проектов
 func List(w http.ResponseWriter, r *http.Request) {
+	// Получение токена из заголовков
+	tokens, ok := r.Header["Authorization"]
+	if ok && len(tokens) >= 1 {
+		tokenString = tokens[0]
+		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+	}
+
+	// Проверка токета
+	if tokenString == "" {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
+
+	// Обработка токета
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Don't forget to validate the alg is what you expect:
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+
+		return config.Server().Secret, nil
+	})
+	errors.ErrorHandler(err, 500, w)
+
+	// Получение подписей из токена
+	claims, _ := token.Claims.(jwt.MapClaims)
+
 	// Подготовка запроса
-	rows, err := dbProjects.List()
+	rows, err := dbProjects.List(claims["uid"].(float64))
 	errors.ErrorHandler(err, 500, w)
 	defer rows.Close()
 
@@ -33,7 +68,7 @@ func List(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		project := new(iProjects.Model)
 
-		err := rows.Scan(&project.ID, &project.Name, &project.Pages)
+		err := rows.Scan(&project.ID, &project.Name, &project.Pages, &project.Owner)
 		errors.ErrorHandler(err, 500, w)
 
 		projects = append(projects, project)
@@ -67,7 +102,7 @@ func Item(w http.ResponseWriter, r *http.Request) {
 	project := new(iProjects.Model)
 
 	// Сбор данных из БД в структуру
-	err := row.Scan(&project.ID, &project.Name, &project.Pages)
+	err := row.Scan(&project.ID, &project.Name, &project.Pages, &project.Owner)
 	if err == sql.ErrNoRows {
 		http.NotFound(w, r)
 		return
@@ -87,10 +122,37 @@ func Item(w http.ResponseWriter, r *http.Request) {
 
 // Create создает новый проект
 func Create(w http.ResponseWriter, r *http.Request) {
+	// Получение токена из заголовков
+	tokens, ok := r.Header["Authorization"]
+	if ok && len(tokens) >= 1 {
+		tokenString = tokens[0]
+		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+	}
+
+	// Проверка токета
+	if tokenString == "" {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
+
+	// Обработка токета
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Don't forget to validate the alg is what you expect:
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+
+		return config.Server().Secret, nil
+	})
+	errors.ErrorHandler(err, 500, w)
+
+	// Получение подписей из токена
+	claims, _ := token.Claims.(jwt.MapClaims)
+
 	// Сбор и анализ входных данных
 	decoder := json.NewDecoder(r.Body)
 	project := new(iProjects.Model)
-	err := decoder.Decode(&project)
+	err = decoder.Decode(&project)
 	errors.ErrorHandler(err, 500, w)
 	defer r.Body.Close()
 
@@ -98,6 +160,9 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
+
+	// Присвоение владельца проекту
+	project.Owner = claims["uid"].(float64)
 
 	// Выполнение запроса
 	row := dbProjects.Create(project)

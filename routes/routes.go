@@ -5,10 +5,12 @@ import (
 	// Config
 	"MindAssistantBackend/config"
 	// Controllers
+	"MindAssistantBackend/controllers/auth"
 	"MindAssistantBackend/controllers/data"
 	"MindAssistantBackend/controllers/data/fields"
 	"MindAssistantBackend/controllers/data/groups"
 	"MindAssistantBackend/controllers/projects"
+	"MindAssistantBackend/controllers/user"
 	// Public
 	"MindAssistantBackend/public/scrapper"
 	// Packages
@@ -23,55 +25,65 @@ func Handle() http.Handler {
 	router := mux.NewRouter()
 
 	// Методы для работы с проектами
-	router.HandleFunc("/projects", projects.List).
+	router.Handle("/projects", auth.Middleware.Handler(http.HandlerFunc(projects.List))).
 		Methods("GET")
 
-	router.HandleFunc("/projects/{id}", projects.Item).
+	router.Handle("/projects/{id}", auth.Middleware.Handler(http.HandlerFunc(projects.Item))).
 		Methods("GET")
 
-	router.HandleFunc("/projects", projects.Create).
+	router.Handle("/projects", auth.Middleware.Handler(http.HandlerFunc(projects.Create))).
 		Methods("OPTIONS", "POST")
 
-	router.HandleFunc("/projects/{id}", projects.Update).
+	router.Handle("/projects/{id}", auth.Middleware.Handler(http.HandlerFunc(projects.Update))).
 		Methods("OPTIONS", "PUT")
 
-	router.HandleFunc("/projects/{id}", projects.Delete).
+	router.Handle("/projects/{id}", auth.Middleware.Handler(http.HandlerFunc(projects.Delete))).
 		Methods("OPTIONS", "DELETE")
 
 	// Методы для работы с Data объектами
-	router.HandleFunc("/data/project/{id}", data.List).
+	router.Handle("/data/project/{id}", auth.Middleware.Handler(http.HandlerFunc(data.List))).
 		Methods("GET")
 
-	router.HandleFunc("/data", data.Create).
+	router.Handle("/data", auth.Middleware.Handler(http.HandlerFunc(data.Create))).
 		Methods("OPTIONS", "POST")
 
-	router.HandleFunc("/data/{id}", data.Update).
+	router.Handle("/data/{id}", auth.Middleware.Handler(http.HandlerFunc(data.Update))).
 		Methods("OPTIONS", "PUT")
 
-	router.HandleFunc("/data/{id}", data.Delete).
+	router.Handle("/data/{id}", auth.Middleware.Handler(http.HandlerFunc(data.Delete))).
 		Methods("OPTIONS", "DELETE")
 
 	// Методы для работы с группами полей Data объектов
-	router.HandleFunc("/data/groups", groups.Create).
+	router.Handle("/data/groups", auth.Middleware.Handler(http.HandlerFunc(groups.Create))).
 		Methods("OPTIONS", "POST")
 
-	router.HandleFunc("/data/groups/{id}", groups.Delete).
+	router.Handle("/data/groups/{id}", auth.Middleware.Handler(http.HandlerFunc(groups.Delete))).
 		Methods("OPTIONS", "DELETE")
 
 	// Методы для работы с группами полей Data объектов
-	router.HandleFunc("/data/fields", fields.Create).
+	router.Handle("/data/fields", auth.Middleware.Handler(http.HandlerFunc(fields.Create))).
 		Methods("OPTIONS", "POST")
 
-	router.HandleFunc("/data/fields/{id}", fields.Delete).
+	router.Handle("/data/fields/{id}", auth.Middleware.Handler(http.HandlerFunc(fields.Delete))).
 		Methods("OPTIONS", "DELETE")
 
 	// Вспомогательные публичные методы
 	router.HandleFunc("/scrap", scrapper.Parse).
 		Methods("OPTIONS", "POST")
 
+	// Методы для работы с пользователями
+	router.HandleFunc("/user/registration", user.Registration).
+		Methods("OPTIONS", "POST")
+
+	router.HandleFunc("/user/login", user.Login).
+		Methods("OPTIONS", "POST")
+
 	// Список роутов
 	handler := cors.New(cors.Options{
-		AllowedMethods: config.Server().AllowedMethods,
+		AllowedOrigins:   config.Server().AllowedOrigins,
+		AllowedMethods:   config.Server().AllowedMethods,
+		AllowCredentials: config.Server().AllowCredentials,
+		AllowedHeaders:   config.Server().AllowedHeaders,
 	}).Handler(router)
 
 	return handler
